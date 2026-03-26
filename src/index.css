@@ -115,7 +115,7 @@ textarea {
   inset: -30px;
   background-size: cover;
   background-position: center;
-  filter: blur(4px) brightness(0.34) saturate(1.06);
+  filter: blur(5px) brightness(0.28) saturate(1.08);
   transform: scale(1.08);
   animation: titleBgSlow 28s ease-in-out infinite alternate;
 }
@@ -133,9 +133,70 @@ textarea {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 50% 32%, rgba(168, 130, 82, 0.18), transparent 28%),
-    radial-gradient(circle at 50% 80%, rgba(0, 0, 0, 0.68), transparent 48%),
-    linear-gradient(180deg, rgba(4, 4, 8, 0.28) 0%, rgba(4, 4, 8, 0.68) 100%);
+    radial-gradient(circle at 50% 32%, rgba(168, 130, 82, 0.2), transparent 28%),
+    radial-gradient(circle at 50% 80%, rgba(0, 0, 0, 0.72), transparent 48%),
+    linear-gradient(180deg, rgba(4, 4, 8, 0.34) 0%, rgba(4, 4, 8, 0.76) 100%);
+}
+
+.title-film {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 17vh;
+  z-index: 8;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.94), rgba(0, 0, 0, 0.72));
+  transition: transform 1.2s ease;
+}
+
+.title-film-top {
+  top: 0;
+}
+
+.title-film-bottom {
+  bottom: 0;
+  transform-origin: bottom center;
+}
+
+#title-screen.ready .title-film-top {
+  transform: translateY(-105%);
+}
+
+#title-screen.ready .title-film-bottom {
+  transform: translateY(105%);
+}
+
+.title-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 74px 74px;
+  opacity: 0.26;
+  mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 1) 18%, rgba(0, 0, 0, 1) 82%, transparent 100%);
+}
+
+.title-glow {
+  position: absolute;
+  z-index: 4;
+  width: 46vw;
+  height: 46vw;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.18;
+}
+
+.title-glow-left {
+  left: -14vw;
+  top: 16vh;
+  background: rgba(222, 188, 125, 0.64);
+}
+
+.title-glow-right {
+  right: -18vw;
+  bottom: 8vh;
+  background: rgba(90, 148, 204, 0.44);
 }
 
 .title-content {
@@ -144,6 +205,7 @@ textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 18px;
   opacity: 0;
   transform: translateY(26px);
   transition: opacity 1.2s ease, transform 1.2s ease;
@@ -155,16 +217,95 @@ textarea {
 }
 
 .title-logo {
+  display: flex;
+  align-items: center;
+  gap: 24px;
   text-align: center;
-  margin-bottom: 54px;
+  margin-bottom: 34px;
+}
+
+.title-kicker {
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  color: rgba(245, 230, 205, 0.56);
+}
+
+.title-seal {
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  border: 1px solid rgba(255, 225, 190, 0.26);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(70, 34, 28, 0.7), rgba(28, 16, 18, 0.68));
+  color: rgba(255, 236, 212, 0.92);
+  font-family: var(--font-title);
+  font-size: 42px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.26);
+  animation: titleSealPulse 4.4s ease-in-out infinite;
+}
+
+@keyframes titleSealPulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.26);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 22px 44px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.title-logo-core {
+  position: relative;
 }
 
 .title-main {
+  position: relative;
   font-family: var(--font-title);
   font-size: clamp(42px, 8vw, 74px);
   letter-spacing: 12px;
   color: rgba(248, 242, 236, 0.96);
-  text-shadow: 0 3px 30px rgba(201, 166, 116, 0.2), 0 4px 26px rgba(0, 0, 0, 0.86);
+  text-shadow: 0 3px 30px rgba(201, 166, 116, 0.18), 0 4px 26px rgba(0, 0, 0, 0.86);
+  animation: titleBreath 4.8s ease-in-out infinite;
+}
+
+.title-main-glow {
+  position: absolute;
+  inset: 0;
+  font-family: var(--font-title);
+  font-size: clamp(42px, 8vw, 74px);
+  letter-spacing: 12px;
+  color: rgba(255, 226, 177, 0.26);
+  filter: blur(14px);
+  transform: translateY(2px);
+  pointer-events: none;
+}
+
+@keyframes titleBreath {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    text-shadow: 0 3px 30px rgba(201, 166, 116, 0.18), 0 4px 26px rgba(0, 0, 0, 0.86);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.012);
+    text-shadow: 0 8px 36px rgba(225, 193, 139, 0.28), 0 8px 32px rgba(0, 0, 0, 0.84);
+  }
+}
+
+.title-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12px 0 8px;
+}
+
+.title-divider span {
+  width: min(360px, 60vw);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245, 222, 192, 0.82), transparent);
 }
 
 .title-sub {
@@ -172,7 +313,14 @@ textarea {
   font-family: var(--font-title);
   font-size: clamp(13px, 2vw, 18px);
   color: rgba(231, 217, 198, 0.64);
-  letter-spacing: 4px;
+  letter-spacing: 6px;
+}
+
+.title-copy {
+  margin-top: 14px;
+  color: rgba(240, 234, 224, 0.72);
+  font-size: 14px;
+  letter-spacing: 0.12em;
 }
 
 .title-menu {
@@ -216,11 +364,20 @@ textarea {
 }
 
 .title-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-top: 48px;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.28);
   letter-spacing: 2px;
   animation: titlePulse 2.4s ease-in-out infinite;
+}
+
+.title-footer-line {
+  width: 88px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 232, 198, 0.46), transparent);
 }
 
 @keyframes titlePulse {
@@ -246,12 +403,77 @@ textarea {
   display: flex;
 }
 
+.credits-bg,
+.credits-overlay,
+.credits-vignette {
+  position: absolute;
+  inset: 0;
+}
+
+.credits-bg {
+  background: center / cover no-repeat;
+  filter: blur(6px) brightness(0.22) saturate(1.05);
+  transform: scale(1.08);
+}
+
+.credits-overlay {
+  background:
+    radial-gradient(circle at 50% 24%, rgba(190, 144, 82, 0.2), transparent 28%),
+    linear-gradient(180deg, rgba(5, 5, 10, 0.3), rgba(5, 5, 10, 0.84));
+}
+
+.credits-vignette {
+  background:
+    radial-gradient(circle at center, transparent 46%, rgba(0, 0, 0, 0.54) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.68), transparent 18%, transparent 82%, rgba(0, 0, 0, 0.74));
+}
+
+.credits-fixed {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  z-index: 4;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 6px;
+  text-align: center;
+}
+
+.credits-fixed-kicker {
+  color: rgba(244, 225, 196, 0.54);
+  font-size: 11px;
+  letter-spacing: 0.42em;
+}
+
+.credits-fixed-title {
+  font-family: var(--font-title);
+  font-size: clamp(34px, 5vw, 52px);
+  color: rgba(248, 242, 236, 0.94);
+  letter-spacing: 0.22em;
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.44);
+}
+
+.credits-fixed-sub {
+  color: rgba(234, 222, 206, 0.58);
+  font-size: 13px;
+  letter-spacing: 0.22em;
+}
+
 #credits-content {
   position: absolute;
   top: 100%;
-  width: 100%;
+  z-index: 5;
+  width: min(760px, calc(100% - 32px));
+  padding: 0 0 180px;
   text-align: center;
-  animation: scrollUp 20s linear infinite;
+  animation: scrollUp 28s linear infinite;
+}
+
+.credits-return {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 6;
 }
 
 @keyframes scrollUp {
@@ -259,34 +481,87 @@ textarea {
     top: 100%;
     opacity: 0;
   }
-  10% {
+  8% {
     opacity: 1;
   }
-  90% {
+  92% {
     opacity: 1;
   }
   100% {
-    top: -100%;
+    top: -140%;
     opacity: 0;
   }
 }
 
+.credit-kicker {
+  margin-bottom: 12px;
+  color: rgba(244, 222, 186, 0.6);
+  font-size: 12px;
+  letter-spacing: 0.4em;
+}
+
 .credit-title {
-  margin-bottom: 50px;
-  font-size: 32px;
+  margin-bottom: 16px;
+  font-size: 36px;
   color: var(--accent);
-  letter-spacing: 2px;
+  letter-spacing: 4px;
+  font-family: var(--font-title);
+}
+
+.credit-subtitle {
+  max-width: 620px;
+  margin: 0 auto 42px;
+  color: rgba(238, 230, 218, 0.64);
+  line-height: 1.9;
+  letter-spacing: 0.08em;
 }
 
 .credit-role {
-  margin-top: 20px;
   margin-bottom: 8px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 226, 188, 0.58);
+  letter-spacing: 0.22em;
+  font-size: 12px;
+}
+
+.credit-card {
+  margin: 18px auto;
+  padding: 18px 24px;
+  border: 1px solid rgba(255, 232, 205, 0.12);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(22, 14, 18, 0.66), rgba(12, 8, 10, 0.68));
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(14px);
 }
 
 .credit-name {
   font-size: 24px;
   font-weight: 700;
+  color: rgba(255, 247, 235, 0.92);
+}
+
+.credit-quote {
+  margin: 72px auto 32px;
+  color: rgba(244, 235, 223, 0.82);
+  font-family: var(--font-title);
+  font-size: clamp(20px, 2.2vw, 28px);
+  line-height: 1.9;
+  text-shadow: 0 6px 24px rgba(0, 0, 0, 0.34);
+}
+
+.credit-thanks {
+  margin-top: 48px;
+  color: rgba(255, 228, 189, 0.92);
+  font-family: var(--font-title);
+  font-size: clamp(28px, 3vw, 40px);
+  letter-spacing: 0.16em;
+}
+
+.credit-ending-copy {
+  margin-top: 16px;
+  color: rgba(233, 225, 216, 0.56);
+  font-size: 13px;
+  letter-spacing: 0.18em;
 }
 
 .game-screen {
@@ -1374,9 +1649,54 @@ textarea {
     min-width: 240px;
   }
 
+  .title-logo {
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .title-seal {
+    width: 68px;
+    height: 68px;
+    border-radius: 18px;
+    font-size: 32px;
+  }
+
+  .title-copy {
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .title-footer-line {
+    width: 44px;
+  }
+
   .title-btn {
     padding: 12px 20px;
     font-size: 15px;
+  }
+
+  .credits-fixed {
+    top: 28px;
+    width: calc(100% - 32px);
+  }
+
+  .credits-return {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .credit-card {
+    margin: 14px auto;
+    padding: 16px 18px;
+    border-radius: 18px;
+  }
+
+  .credit-name {
+    font-size: 18px;
+  }
+
+  .credit-quote {
+    font-size: 18px;
   }
 
   .cg-overlay {

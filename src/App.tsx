@@ -64,6 +64,18 @@ const PAUSE_CHARS: Record<string, number> = {
   ",": 2,
 };
 
+const CREDITS_BLOCKS = [
+  { role: "原作 / 编剧", names: "Ray、Justin" },
+  { role: "导演 / 演出构成", names: "Ray、Justin" },
+  { role: "艺术总监", names: "Ray" },
+  { role: "角色设计", names: "公开素材整理 / 二次创作整合" },
+  { role: "视觉设计 / UI", names: "Ray、AI" },
+  { role: "程序实现", names: "AI" },
+  { role: "音乐构想", names: "Ray" },
+  { role: "音效设计", names: "Ray" },
+  { role: "剧情测试", names: "Ray、Justin" },
+];
+
 function readJson<T extends Record<string, unknown>>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -1115,11 +1127,25 @@ export function App() {
         <div id="title-screen" className={titleReady ? "ready" : ""}>
           <div className="title-bg" style={{ backgroundImage: `url("${DEFAULT_BG}")` }} />
           <div className="title-overlay" />
+          <div className="title-film title-film-top" />
+          <div className="title-film title-film-bottom" />
+          <div className="title-grid" />
+          <div className="title-glow title-glow-left" />
+          <div className="title-glow title-glow-right" />
           <DustCanvas active lowPerfMode={lowPerfMode} />
           <div className="title-content">
+            <div className="title-kicker">PSYCHOLOGICAL MYSTERY VISUAL NOVEL</div>
             <div className="title-logo">
-              <div className="title-main">魂归于天</div>
-              <div className="title-sub">A Soul Returns to the Sky</div>
+              <div className="title-seal">魂</div>
+              <div className="title-logo-core">
+                <div className="title-main-glow">魂归于天</div>
+                <div className="title-main">魂归于天</div>
+                <div className="title-divider">
+                  <span />
+                </div>
+                <div className="title-sub">A Soul Returns to the Sky</div>
+                <div className="title-copy">真相被埋进花园之后，仍有人在暮色里等待回家。</div>
+              </div>
             </div>
             <div className="title-menu">
               <button className="title-btn" onClick={startNewGame}>
@@ -1153,31 +1179,45 @@ export function App() {
                 <span>资源管理</span>
               </button>
             </div>
-            <div className="title-footer">VN Studio · Press SPACE to Start</div>
+            <div className="title-footer">
+              <span className="title-footer-line" />
+              <span>VN Studio · Press SPACE to Start</span>
+              <span className="title-footer-line" />
+            </div>
           </div>
         </div>
       )}
 
       {phase === "credits" && (
         <div id="credits-screen" className="show">
+          <div className="credits-bg" style={{ backgroundImage: `url("${DEFAULT_BG}")` }} />
+          <div className="credits-overlay" />
+          <div className="credits-vignette" />
+          <div className="credits-fixed">
+            <div className="credits-fixed-kicker">ENDING</div>
+            <div className="credits-fixed-title">魂归于天</div>
+            <div className="credits-fixed-sub">A Soul Returns to the Sky</div>
+          </div>
+          <button className="btn credits-return" onClick={() => setPhase("title")}>
+            返回标题
+          </button>
           <div id="credits-content">
+            <div className="credit-kicker">END ROLL</div>
             <div className="credit-title">制作团队</div>
-            <div className="credit-role">编剧</div>
-            <div className="credit-name">Ray、Justin</div>
-            <div className="credit-role">导演</div>
-            <div className="credit-name">Ray、Justin</div>
-            <div className="credit-role">艺术总监</div>
-            <div className="credit-name">Ray</div>
-            <div className="credit-role">程序员</div>
-            <div className="credit-name">AI</div>
-            <div className="credit-role">测试人员</div>
-            <div className="credit-name">Ray、Justin</div>
-            <div className="credit-role" style={{ marginTop: 100 }}>
-              感谢游玩
+            <div className="credit-subtitle">A story about truth, memory, and the souls left behind.</div>
+            {CREDITS_BLOCKS.map((block) => (
+              <div key={block.role} className="credit-card">
+                <div className="credit-role">{block.role}</div>
+                <div className="credit-name">{block.names}</div>
+              </div>
+            ))}
+            <div className="credit-quote">
+              “有些东西被挖出来，是为了继续被记住；
+              <br />
+              有些东西被埋回去，则是为了终于可以放下。”
             </div>
-            <button className="btn" style={{ marginTop: 40 }} onClick={() => setPhase("title")}>
-              返回标题
-            </button>
+            <div className="credit-thanks">感谢游玩</div>
+            <div className="credit-ending-copy">May every soul that waited in the dark finally find its sky.</div>
           </div>
         </div>
       )}
