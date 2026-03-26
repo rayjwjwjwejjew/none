@@ -442,6 +442,13 @@ export function App() {
     }
 
     if (nextBg !== lastBgRef.current) {
+      if (lowPerfMode) {
+        setPrevBgUrl("");
+        setTransitionActive(false);
+        setBgUrl(nextBg);
+        lastBgRef.current = nextBg;
+        return;
+      }
       const nextTransition = curLine.transition || "dissolve";
       setPrevBgUrl(lastBgRef.current);
       setTransitionType(nextTransition);
@@ -459,7 +466,7 @@ export function App() {
       };
     }
     return undefined;
-  }, [curLine, index, phase]);
+  }, [curLine, index, lowPerfMode, phase]);
 
   const triggerEffect = useCallback((effectName: string) => {
     if (!effectName || effectName === "none") return;
