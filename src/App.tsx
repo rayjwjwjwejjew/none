@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { jsPDF } from "jspdf";
 import "./index.css";
 import {
   ALL_CONTENT_IMAGES,
   CHARACTER_COLORS,
-  CHARACTER_SPRITES,
   DEFAULT_BG,
   SCRIPT,
   getSceneBg,
@@ -75,7 +74,20 @@ function readJson<T extends Record<string, unknown>>(key: string, fallback: T): 
   }
 }
 
-function RainCanvas({ active }: { active: boolean }) {
+function getBgmMoodClass(name: string): string {
+  if (!name) return "bgm-neutral";
+  if (/(悬疑|压抑|紧张|高潮|审判|恐怖)/.test(name)) return "bgm-tense";
+  if (/(告别|钢琴|日常|治愈|安静|忧郁|悲伤)/.test(name)) return "bgm-soft";
+  return "bgm-neutral";
+}
+
+const RainCanvas = memo(function RainCanvas({
+  active,
+  lowPerfMode,
+}: {
+  active: boolean;
+  lowPerfMode: boolean;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -88,6 +100,8 @@ function RainCanvas({ active }: { active: boolean }) {
     let width = window.innerWidth;
     let height = window.innerHeight;
     const drops: { x: number; y: number; l: number; v: number; a: number }[] = [];
+    let isPageVisible = document.visibilityState === "visible";
+    let lastDraw = 0;
 
     const resize = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -101,7 +115,7 @@ function RainCanvas({ active }: { active: boolean }) {
     };
 
     resize();
-    for (let i = 0; i < 200; i += 1) {
+    for (let i = 0; i < (lowPerfMode ? 88 : 150); i += 1) {
       drops.push({
         x: Math.random() * width,
         y: Math.random() * height,
@@ -112,7 +126,21 @@ function RainCanvas({ active }: { active: boolean }) {
     }
 
     let frameId = 0;
-    const tick = () => {
+    const frameInterval = 1000 / (lowPerfMode ? 24 : 40);
+    const handleVisibility = () => {
+      isPageVisible = document.visibilityState === "visible";
+    };
+
+    const tick = (now: number) => {
+      if (!isPageVisible) {
+        frameId = requestAnimationFrame(tick);
+        return;
+      }
+      if (now - lastDraw < frameInterval) {
+        frameId = requestAnimationFrame(tick);
+        return;
+      }
+      lastDraw = now;
       ctx.clearRect(0, 0, width, height);
       ctx.lineWidth = 1;
       ctx.strokeStyle = "rgba(180, 210, 255, 0.32)";
@@ -137,21 +165,30 @@ function RainCanvas({ active }: { active: boolean }) {
     };
 
     window.addEventListener("resize", resize);
-    tick();
+    document.addEventListener("visibilitychange", handleVisibility);
+    frameId = requestAnimationFrame(tick);
     return () => {
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", handleVisibility);
       cancelAnimationFrame(frameId);
     };
-  }, [active]);
+  }, [active, lowPerfMode]);
 
   if (!active) return null;
   return <canvas className="rain-canvas" ref={canvasRef} />;
-}
+});
 
-function DustCanvas() {
+const DustCanvas = memo(function DustCanvas({
+  active,
+  lowPerfMode,
+}: {
+  active: boolean;
+  lowPerfMode: boolean;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    if (!active) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d", { alpha: true });
@@ -160,6 +197,8 @@ function DustCanvas() {
     let width = window.innerWidth;
     let height = window.innerHeight;
     const points: { x: number; y: number; r: number; a: number; vx: number; vy: number }[] = [];
+    let isPageVisible = document.visibilityState === "visible";
+    let lastDraw = 0;
 
     const resize = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -173,7 +212,7 @@ function DustCanvas() {
     };
 
     resize();
-    for (let i = 0; i < 90; i += 1) {
+    for (let i = 0; i < (lowPerfMode ? 36 : 72); i += 1) {
       points.push({
         x: Math.random() * width,
         y: Math.random() * height,
@@ -185,7 +224,21 @@ function DustCanvas() {
     }
 
     let frameId = 0;
-    const tick = () => {
+    const frameInterval = 1000 / (lowPerfMode ? 18 : 28);
+    const handleVisibility = () => {
+      isPageVisible = document.visibilityState === "visible";
+    };
+
+    const tick = (now: number) => {
+      if (!isPageVisible) {
+        frameId = requestAnimationFrame(tick);
+        return;
+      }
+      if (now - lastDraw < frameInterval) {
+        frameId = requestAnimationFrame(tick);
+        return;
+      }
+      lastDraw = now;
       ctx.clearRect(0, 0, width, height);
       ctx.globalCompositeOperation = "lighter";
       for (const point of points) {
@@ -205,15 +258,59 @@ function DustCanvas() {
     };
 
     window.addEventListener("resize", resize);
-    tick();
+    document.addEventListener("visibilitychange", handleVisibility);
+    frameId = requestAnimationFrame(tick);
     return () => {
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", handleVisibility);
       cancelAnimationFrame(frameId);
     };
-  }, []);
+  }, [active, lowPerfMode]);
 
+  if (!active) return null;
   return <canvas id="dust" ref={canvasRef} />;
-}
+});
+
+const StageSprites = memo(function StageSprites({ stageChars }: { stageChars: StageCharacter[] }) {
+  return (
+    <div id="stage">
+      {stageChars.map((ch) => (
+        <div
+          key={ch.name}
+          className={`sprite-multi show ${ch.position} ${ch.isSpeaking ? "speaking" : "not-speaking"}`}
+          style={{ backgroundImage: `url("${ch.spriteUrl}")` }}
+        />
+      ))}
+    </div>
+  );
+});
+
+const FloatingBgm = memo(function FloatingBgm({
+  label,
+  playing,
+  muted,
+  moodClass,
+}: {
+  label: string;
+  playing: boolean;
+  muted: boolean;
+  moodClass: string;
+}) {
+  if (!label) return null;
+  return (
+    <div className={`bgm-indicator ${moodClass}`}>
+      <div className="bgm-indicator-eyebrow">{muted ? "BGM MUTED" : playing ? "NOW PLAYING" : "BGM CUE"}</div>
+      <div className="bgm-indicator-main">
+        <span className="bgm-eq" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
+        <span className="bgm-indicator-text">{label}</span>
+      </div>
+    </div>
+  );
+});
 
 export function App() {
   const [index, setIndex] = useState(0);
@@ -249,6 +346,8 @@ export function App() {
   const [cgVisible, setCgVisible] = useState(false);
   const [cgTitle, setCgTitle] = useState("");
   const [cgImageUrl, setCgImageUrl] = useState("");
+  const [lowPerfMode, setLowPerfMode] = useState(false);
+  const [actBannerVisible, setActBannerVisible] = useState(false);
 
   const autoTimeoutRef = useRef<number | null>(null);
   const typingFrameRef = useRef<number | null>(null);
@@ -261,6 +360,7 @@ export function App() {
   const sfxRef = useRef<HTMLAudioElement>(new Audio());
   const bgmUrlRef = useRef("");
   const sfxUrlRef = useRef("");
+  const shownActRef = useRef("");
 
   const curLine = SCRIPT.lines[index];
 
@@ -268,6 +368,26 @@ export function App() {
     bgmRef.current.loop = true;
     bgmFadeRef.current.loop = true;
     sfxRef.current.preload = "auto";
+  }, []);
+
+  useEffect(() => {
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const coarsePointerQuery = window.matchMedia("(pointer: coarse)");
+    const applyPerformanceMode = () => {
+      const lowCoreCount = (navigator.hardwareConcurrency || 8) <= 4;
+      const compactViewport = window.innerWidth < 900;
+      setLowPerfMode(reducedMotionQuery.matches || lowCoreCount || (coarsePointerQuery.matches && compactViewport));
+    };
+
+    applyPerformanceMode();
+    reducedMotionQuery.addEventListener("change", applyPerformanceMode);
+    coarsePointerQuery.addEventListener("change", applyPerformanceMode);
+    window.addEventListener("resize", applyPerformanceMode);
+    return () => {
+      reducedMotionQuery.removeEventListener("change", applyPerformanceMode);
+      coarsePointerQuery.removeEventListener("change", applyPerformanceMode);
+      window.removeEventListener("resize", applyPerformanceMode);
+    };
   }, []);
 
   useEffect(() => {
@@ -289,7 +409,9 @@ export function App() {
     root.setProperty("--bg-opacity", `${settings.bgOpacity / 100}`);
     root.setProperty("--sprite-y", `${settings.spriteY}px`);
     root.setProperty("--sprite-x", `${settings.spriteX}px`);
+    root.setProperty("--ui-alpha", `${0.05 + settings.uiAlpha / 420}`);
     bgmRef.current.volume = settings.bgmVol / 100;
+    sfxRef.current.volume = settings.sfxVol / 100;
     localStorage.setItem(KEY_SETTINGS, JSON.stringify(settings));
   }, [settings]);
 
@@ -369,6 +491,15 @@ export function App() {
     if (phase !== "playing" || !curLine) return;
     setStageChars(getSceneCharacters(SCRIPT.lines, index, curLine.speaker));
   }, [curLine, index, phase]);
+
+  useEffect(() => {
+    if (phase !== "playing" || !curLine?.act) return;
+    if (shownActRef.current === curLine.act) return;
+    shownActRef.current = curLine.act;
+    setActBannerVisible(true);
+    const timer = window.setTimeout(() => setActBannerVisible(false), lowPerfMode ? 1800 : 2600);
+    return () => window.clearTimeout(timer);
+  }, [curLine?.act, lowPerfMode, phase]);
 
   const crossfadeBgm = useCallback(
     async (assetId: string, name: string) => {
@@ -664,12 +795,14 @@ export function App() {
     setIndex(0);
     setLog([]);
     lastBgRef.current = "";
+    shownActRef.current = "";
     setPhase("playing");
   };
 
   const continueGame = () => {
     if (loadGame()) {
       lastBgRef.current = "";
+      shownActRef.current = "";
       setPhase("playing");
     }
   };
@@ -780,6 +913,7 @@ export function App() {
 
   const buildPdfDoc = async () => {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     const margin = 12;
     const contentW = pageW - margin * 2;
@@ -949,8 +1083,9 @@ export function App() {
   const speaker = curLine?.speaker;
   const showName = Boolean(speaker && speaker !== "旁白" && speaker !== "SYSTEM");
   const speakerColor = speaker ? CHARACTER_COLORS[speaker] || "rgba(255,241,248,0.96)" : "rgba(255,241,248,0.96)";
-  const speakerAvatar = speaker ? CHARACTER_SPRITES[speaker] || "" : "";
   const currentBgmLabel = bgmList.find((item) => item.id === currentBgmId)?.label || currentBgmName || "";
+  const bgmMoodClass = getBgmMoodClass(currentBgmLabel);
+  const sceneProgress = `${Math.min(index + 1, SCRIPT.lines.length)}/${SCRIPT.lines.length}`;
 
   return (
     <div id="app-root">
@@ -973,7 +1108,7 @@ export function App() {
         <div id="title-screen" className={titleReady ? "ready" : ""}>
           <div className="title-bg" style={{ backgroundImage: `url("${DEFAULT_BG}")` }} />
           <div className="title-overlay" />
-          <DustCanvas />
+          <DustCanvas active lowPerfMode={lowPerfMode} />
           <div className="title-content">
             <div className="title-logo">
               <div className="title-main">魂归于天</div>
@@ -1041,7 +1176,7 @@ export function App() {
       )}
 
       {phase === "playing" && (
-        <div className={`game-screen ${effectClasses}`}>
+        <div className={`game-screen ${effectClasses} ${bgmMoodClass}`}>
           <div className="bg-container">
             {prevBgUrl && transitionActive && transitionType === "dissolve" && (
               <div className="bg-layer bg-prev" style={{ backgroundImage: `url("${prevBgUrl}")` }} />
@@ -1054,20 +1189,20 @@ export function App() {
 
           <div className={`transition-overlay ${transitionActive ? `active ${transitionType}` : ""}`} />
           <div id="dim" />
-          <DustCanvas />
-          <RainCanvas active={showRain} />
+          <DustCanvas active lowPerfMode={lowPerfMode} />
+          <RainCanvas active={showRain} lowPerfMode={lowPerfMode} />
 
-          <div id="stage">
-            {stageChars.map((ch) => (
-              <div
-                key={ch.name}
-                className={`sprite-multi show ${ch.position} ${ch.isSpeaking ? "speaking" : "not-speaking"}`}
-                style={{ backgroundImage: `url("${ch.spriteUrl}")` }}
-              />
-            ))}
-          </div>
+          <StageSprites stageChars={stageChars} />
 
           <div id="fx" />
+
+          {currentAct && (
+            <div className={`act-ribbon ${actBannerVisible ? "show" : ""}`}>
+              <div className="act-ribbon-kicker">CHAPTER</div>
+              <div className="act-ribbon-title">{currentAct}</div>
+              <div className="act-ribbon-index">{sceneProgress}</div>
+            </div>
+          )}
 
           {cgVisible && (
             <div className="cg-overlay" onClick={() => setCgVisible(false)}>
@@ -1190,6 +1325,11 @@ export function App() {
                 <span className="tiny mono">{settings.bgScale}%</span>
               </div>
               <div className="row">
+                <span className="label">对话层透明</span>
+                <input type="range" min="0" max="100" value={settings.uiAlpha} onChange={(e) => setSettings((s) => ({ ...s, uiAlpha: Number(e.target.value) }))} />
+                <span className="tiny mono">{settings.uiAlpha}%</span>
+              </div>
+              <div className="row">
                 <button className="btn" onClick={() => setSettings(DEFAULT_SETTINGS)}>
                   恢复默认
                 </button>
@@ -1271,18 +1411,11 @@ export function App() {
           </div>
 
           <div id="hud" style={{ display: curLine ? "block" : "none" }}>
+            <FloatingBgm label={currentBgmLabel} playing={bgmPlaying && !bgmMuted} muted={bgmMuted} moodClass={bgmMoodClass} />
             <div id="box" className={!typing && curLine?.kind !== "choice" ? "can-advance" : ""} onClick={() => { if (!curLine?.options) handleNext(); }}>
-              {currentBgmName && (
-                <div className="bgm-indicator">
-                  <span className="bgm-indicator-icon">{bgmPlaying && !bgmMuted ? "♫" : "♪"}</span>
-                  <span className="bgm-indicator-text">{currentBgmName}</span>
-                </div>
-              )}
-
               <div id="name" style={{ display: showName ? "flex" : "none" }}>
                 <span className="name-line-left" style={{ background: `linear-gradient(to right, transparent 0%, ${speakerColor} 100%)` }} />
                 <span className="name-text-inner" style={{ color: speakerColor, borderColor: speakerColor.replace("0.95", "0.32") }}>
-                  {speakerAvatar && <span className="name-avatar" style={{ backgroundImage: `url("${speakerAvatar}")` }} />}
                   <span>{speaker}</span>
                 </span>
                 <span className="name-line-right" style={{ background: `linear-gradient(to left, transparent 0%, ${speakerColor} 100%)` }} />
@@ -1303,14 +1436,12 @@ export function App() {
 
               <div id="subline">
                 <div className="left">
-                  <span className="pill">{currentAct || "__ACT__"}</span>
-                  <span className="pill">
-                    {Math.min(index + 1, SCRIPT.lines.length)}/{SCRIPT.lines.length}
-                  </span>
+                  <span className="story-meta-label">CHAPTER</span>
+                  <span className="story-meta-value">{currentAct || "__ACT__"}</span>
                 </div>
                 <div className="right">
-                  <span className="pill">{skip ? "SKIP" : auto ? "AUTO" : typing ? "TYPE" : "READY"}</span>
-                  {curLine?.sfx && <span className="pill sfx-pill">🔔 {curLine.sfx}</span>}
+                  <span className="story-meta-label">COUNT</span>
+                  <span className="story-meta-value">{sceneProgress}</span>
                 </div>
               </div>
             </div>
