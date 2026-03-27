@@ -325,7 +325,7 @@ const FloatingBgm = memo(function FloatingBgm({
   if (!label) return null;
   return (
     <div className={`bgm-indicator ${moodClass}`}>
-      <div className="bgm-indicator-eyebrow">{muted ? "BGM MUTED" : playing ? "NOW PLAYING" : "BGM CUE"}</div>
+      <div className="bgm-indicator-eyebrow">{muted ? "BGM 已静音" : playing ? "正在播放" : "BGM 待机"}</div>
       <div className="bgm-indicator-main">
         <span className="bgm-eq" aria-hidden="true">
           <span />
@@ -371,7 +371,6 @@ export function App() {
   const [cgTitle, setCgTitle] = useState("");
   const [cgImageUrl, setCgImageUrl] = useState("");
   const [lowPerfMode, setLowPerfMode] = useState(false);
-  const [actBannerVisible, setActBannerVisible] = useState(false);
 
   const autoTimeoutRef = useRef<number | null>(null);
   const typingFrameRef = useRef<number | null>(null);
@@ -383,7 +382,6 @@ export function App() {
   const sfxRef = useRef<HTMLAudioElement>(new Audio());
   const bgmUrlRef = useRef("");
   const sfxUrlRef = useRef("");
-  const shownActRef = useRef("");
 
   const curLine = SCRIPT.lines[index];
 
@@ -521,15 +519,6 @@ export function App() {
     if (phase !== "playing" || !curLine) return;
     setStageChars(getSceneCharacters(SCRIPT.lines, index, curLine.speaker));
   }, [curLine, index, phase]);
-
-  useEffect(() => {
-    if (phase !== "playing" || !curLine?.act) return;
-    if (shownActRef.current === curLine.act) return;
-    shownActRef.current = curLine.act;
-    setActBannerVisible(true);
-    const timer = window.setTimeout(() => setActBannerVisible(false), lowPerfMode ? 1800 : 2600);
-    return () => window.clearTimeout(timer);
-  }, [curLine?.act, lowPerfMode, phase]);
 
   const crossfadeBgm = useCallback(
     async (assetId: string, name: string) => {
@@ -808,7 +797,6 @@ export function App() {
     setIndex(0);
     setLog([]);
     lastBgRef.current = "";
-    shownActRef.current = "";
     setActivePanel(null);
     setPhase("playing");
   };
@@ -1102,7 +1090,7 @@ export function App() {
           <div className="title-glow title-glow-right" />
           <DustCanvas active lowPerfMode={lowPerfMode} />
           <div className="title-content">
-            <div className="title-kicker">PSYCHOLOGICAL MYSTERY VISUAL NOVEL</div>
+            <div className="title-kicker">悬疑视觉小说</div>
             <div className="title-logo">
               <div className="title-logo-core">
                 <div className="title-main-glow">盛开在谎言之上</div>
@@ -1130,7 +1118,7 @@ export function App() {
             </div>
             <div className="title-footer">
               <span className="title-footer-line" />
-              <span>VN Studio · Press SPACE to Start</span>
+              <span>按空格开始</span>
               <span className="title-footer-line" />
             </div>
           </div>
@@ -1139,7 +1127,7 @@ export function App() {
               <div className="title-panel-shell" onClick={(event) => event.stopPropagation()}>
                 <div className="title-panel-head">
                   <div>
-                    <div className="title-panel-kicker">MENU</div>
+                    <div className="title-panel-kicker">系统菜单</div>
                     <div className="title-panel-title">{activePanel === "settings" ? "设置" : "资源管理"}</div>
                   </div>
                   <button className="title-panel-close" onClick={() => setActivePanel(null)}>
@@ -1159,7 +1147,7 @@ export function App() {
           <div className="credits-overlay" />
           <div className="credits-vignette" />
           <div className="credits-fixed">
-            <div className="credits-fixed-kicker">ENDING</div>
+            <div className="credits-fixed-kicker">终幕</div>
             <div className="credits-fixed-title">盛开在谎言之上</div>
             <div className="credits-fixed-sub">——带你去极光尽头</div>
           </div>
@@ -1169,7 +1157,7 @@ export function App() {
           <div id="credits-content">
             <div className="credit-kicker">END ROLL</div>
             <div className="credit-title">制作团队</div>
-            <div className="credit-subtitle">A story about truth, memory, and the souls left behind.</div>
+            <div className="credit-subtitle">一个关于真相、记忆与归途的故事。</div>
             {CREDITS_BLOCKS.map((block) => (
               <div key={block.role} className="credit-card">
                 <div className="credit-role">{block.role}</div>
@@ -1182,7 +1170,7 @@ export function App() {
               有些东西被埋回去，则是为了终于可以放下。”
             </div>
             <div className="credit-thanks">感谢游玩</div>
-            <div className="credit-ending-copy">May every soul that waited in the dark finally find its sky.</div>
+            <div className="credit-ending-copy">愿每一个在暮色中等待的人，最终都能回家。</div>
           </div>
         </div>
       )}
@@ -1207,14 +1195,6 @@ export function App() {
           <StageSprites stageChars={stageChars} />
 
           <div id="fx" />
-
-          {currentAct && (
-            <div className={`act-ribbon ${actBannerVisible ? "show" : ""}`}>
-              <div className="act-ribbon-kicker">CHAPTER</div>
-              <div className="act-ribbon-title">{currentAct}</div>
-              <div className="act-ribbon-index">{sceneProgress}</div>
-            </div>
-          )}
 
           {cgVisible && (
             <div className="cg-overlay" onClick={() => setCgVisible(false)}>
