@@ -107,198 +107,6 @@ function getCodeFenceLanguage(path: string): string {
   return "text";
 }
 
-type UiCue = "soft" | "panel" | "choice" | "confirm";
-type SynthThemeId = "title" | "calm" | "uneasy" | "oppressive" | "dread" | "tragic" | "ending";
-
-type SynthTheme = {
-  tempo: number;
-  rootMidi: number;
-  progression: number[];
-  bass: Array<number | null>;
-  lead: Array<number | null>;
-  padGain: number;
-  bassGain: number;
-  leadGain: number;
-  padWave: OscillatorType;
-  bassWave: OscillatorType;
-  leadWave: OscillatorType;
-};
-
-type SynthController = {
-  context: AudioContext;
-  bgmGain: GainNode;
-  uiGain: GainNode;
-  themeId: SynthThemeId | null;
-  schedulerId: number | null;
-  stepIndex: number;
-  nextNoteTime: number;
-  paused: boolean;
-};
-
-const SYNTH_THEMES: Record<SynthThemeId, SynthTheme> = {
-  title: {
-    tempo: 74,
-    rootMidi: 57,
-    progression: [0, 5, 3, 8],
-    bass: [0, null, 0, null, 5, null, 3, null],
-    lead: [12, null, 10, null, 8, null, 7, null],
-    padGain: 0.06,
-    bassGain: 0.055,
-    leadGain: 0.038,
-    padWave: "triangle",
-    bassWave: "sine",
-    leadWave: "triangle",
-  },
-  calm: {
-    tempo: 88,
-    rootMidi: 60,
-    progression: [0, 5, 7, 3],
-    bass: [0, null, 0, null, 5, null, 7, null],
-    lead: [12, 14, null, 12, 17, null, 16, 14],
-    padGain: 0.048,
-    bassGain: 0.04,
-    leadGain: 0.028,
-    padWave: "triangle",
-    bassWave: "sine",
-    leadWave: "sine",
-  },
-  uneasy: {
-    tempo: 82,
-    rootMidi: 57,
-    progression: [0, 2, 5, 3],
-    bass: [0, null, 2, null, 5, null, 3, null],
-    lead: [12, null, 11, 10, null, 8, null, 7],
-    padGain: 0.055,
-    bassGain: 0.05,
-    leadGain: 0.03,
-    padWave: "sawtooth",
-    bassWave: "triangle",
-    leadWave: "triangle",
-  },
-  oppressive: {
-    tempo: 72,
-    rootMidi: 52,
-    progression: [0, 1, 5, 3],
-    bass: [0, null, 1, null, 5, null, 3, null],
-    lead: [12, null, null, 10, null, 8, 7, null],
-    padGain: 0.068,
-    bassGain: 0.058,
-    leadGain: 0.025,
-    padWave: "sawtooth",
-    bassWave: "square",
-    leadWave: "triangle",
-  },
-  dread: {
-    tempo: 64,
-    rootMidi: 50,
-    progression: [0, 0, 3, 1],
-    bass: [0, null, 0, null, 3, null, 1, null],
-    lead: [null, 12, null, 11, null, 10, null, 8],
-    padGain: 0.076,
-    bassGain: 0.066,
-    leadGain: 0.024,
-    padWave: "square",
-    bassWave: "square",
-    leadWave: "sawtooth",
-  },
-  tragic: {
-    tempo: 68,
-    rootMidi: 53,
-    progression: [0, 5, 8, 3],
-    bass: [0, null, 5, null, 8, null, 3, null],
-    lead: [12, null, 15, null, 14, 12, null, 10],
-    padGain: 0.072,
-    bassGain: 0.054,
-    leadGain: 0.042,
-    padWave: "triangle",
-    bassWave: "sine",
-    leadWave: "triangle",
-  },
-  ending: {
-    tempo: 62,
-    rootMidi: 55,
-    progression: [0, 7, 5, 10],
-    bass: [0, null, 7, null, 5, null, 10, null],
-    lead: [12, 14, null, 17, null, 15, 14, null],
-    padGain: 0.08,
-    bassGain: 0.058,
-    leadGain: 0.048,
-    padWave: "triangle",
-    bassWave: "sine",
-    leadWave: "sine",
-  },
-};
-
-function midiToFreq(midi: number): number {
-  return 440 * 2 ** ((midi - 69) / 12);
-}
-
-function resolveFallbackTheme(label: string, phase: GamePhase): SynthThemeId {
-  if (phase === "title") return "title";
-  if (phase === "credits") return "ending";
-  if (/(治愈|告别|钢琴独奏|悲伤|忧郁|探访)/.test(label)) return "tragic";
-  if (/(审判|高潮|潜入)/.test(label)) return "dread";
-  if (/(压抑|恐怖|悬疑|沉重|纠结)/.test(label)) return "oppressive";
-  if (/(不安|若有所思|转折|疑惑|调查)/.test(label)) return "uneasy";
-  return "calm";
-}
-
-function scheduleTone(
-  context: AudioContext,
-  destination: AudioNode,
-  {
-    frequency,
-    start,
-    duration,
-    gain,
-    wave,
-    detune = 0,
-  }: {
-    frequency: number;
-    start: number;
-    duration: number;
-    gain: number;
-    wave: OscillatorType;
-    detune?: number;
-  },
-) {
-  const osc = context.createOscillator();
-  const amp = context.createGain();
-  osc.type = wave;
-  osc.frequency.setValueAtTime(frequency, start);
-  osc.detune.setValueAtTime(detune, start);
-  amp.gain.setValueAtTime(0.0001, start);
-  amp.gain.exponentialRampToValueAtTime(gain, start + 0.018);
-  amp.gain.exponentialRampToValueAtTime(Math.max(gain * 0.72, 0.0001), start + duration * 0.62);
-  amp.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-  osc.connect(amp);
-  amp.connect(destination);
-  osc.start(start);
-  osc.stop(start + duration + 0.04);
-}
-
-function createSynthController(): SynthController | null {
-  const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioContextCtor) return null;
-  const context = new AudioContextCtor();
-  const bgmGain = context.createGain();
-  const uiGain = context.createGain();
-  bgmGain.gain.value = 0.0001;
-  uiGain.gain.value = 0.16;
-  bgmGain.connect(context.destination);
-  uiGain.connect(context.destination);
-  return {
-    context,
-    bgmGain,
-    uiGain,
-    themeId: null,
-    schedulerId: null,
-    stepIndex: 0,
-    nextNoteTime: 0,
-    paused: false,
-  };
-}
-
 const RainCanvas = memo(function RainCanvas({
   active,
   lowPerfMode,
@@ -579,9 +387,6 @@ export function App() {
   const sfxRef = useRef<HTMLAudioElement>(new Audio());
   const bgmUrlRef = useRef("");
   const sfxUrlRef = useRef("");
-  const synthRef = useRef<SynthController | null>(null);
-  const bgmModeRef = useRef<"none" | "asset" | "synth">("none");
-  const synthLabelRef = useRef("");
 
   const curLine = SCRIPT.lines[index];
 
@@ -730,177 +535,12 @@ export function App() {
     setStageChars(getSceneCharacters(SCRIPT.lines, index, curLine.speaker));
   }, [curLine, index, phase]);
 
-  const ensureSynth = useCallback(async () => {
-    if (!synthRef.current) {
-      synthRef.current = createSynthController();
-    }
-    if (!synthRef.current) return null;
-    if (synthRef.current.context.state !== "running") {
-      await synthRef.current.context.resume().catch(() => undefined);
-    }
-    return synthRef.current;
-  }, []);
-
-  const syncSynthLevels = useCallback(() => {
-    const synth = synthRef.current;
-    if (!synth) return;
-    const now = synth.context.currentTime;
-    const bgmTarget = bgmMuted ? 0.0001 : Math.max(settings.bgmVol / 100, 0.02) * 0.08;
-    const uiTarget = Math.max(settings.sfxVol / 100, 0.04) * 0.14;
-    synth.bgmGain.gain.cancelScheduledValues(now);
-    synth.bgmGain.gain.setTargetAtTime(bgmTarget, now, 0.12);
-    synth.uiGain.gain.cancelScheduledValues(now);
-    synth.uiGain.gain.setTargetAtTime(uiTarget, now, 0.08);
-  }, [bgmMuted, settings.bgmVol, settings.sfxVol]);
-
-  const stopSyntheticBgm = useCallback(() => {
-    const synth = synthRef.current;
-    if (!synth) return;
-    if (synth.schedulerId) {
-      window.clearTimeout(synth.schedulerId);
-      synth.schedulerId = null;
-    }
-    synth.themeId = null;
-    synth.paused = false;
-    synth.bgmGain.gain.cancelScheduledValues(synth.context.currentTime);
-    synth.bgmGain.gain.setTargetAtTime(0.0001, synth.context.currentTime, 0.08);
-    if (bgmModeRef.current === "synth") {
-      bgmModeRef.current = "none";
-    }
-  }, []);
-
-  const scheduleThemeStep = useCallback((synth: SynthController, theme: SynthTheme, start: number, stepIndex: number) => {
-    const stepDuration = 60 / theme.tempo / 2;
-    const progressionIndex = Math.floor(stepIndex / 2) % theme.progression.length;
-    const chordRoot = theme.rootMidi + theme.progression[progressionIndex];
-
-    if (stepIndex % 2 === 0) {
-      [0, 3, 7, 10].forEach((interval, idx) => {
-        scheduleTone(synth.context, synth.bgmGain, {
-          frequency: midiToFreq(chordRoot + interval + (idx === 3 ? -12 : 0)),
-          start,
-          duration: stepDuration * 1.9,
-          gain: theme.padGain / (idx === 3 ? 2.2 : 1),
-          wave: theme.padWave,
-          detune: idx === 1 ? -7 : idx === 2 ? 6 : 0,
-        });
-      });
-    }
-
-    const bassInterval = theme.bass[stepIndex % theme.bass.length];
-    if (bassInterval !== null) {
-      scheduleTone(synth.context, synth.bgmGain, {
-        frequency: midiToFreq(theme.rootMidi - 12 + bassInterval),
-        start,
-        duration: stepDuration * 0.95,
-        gain: theme.bassGain,
-        wave: theme.bassWave,
-      });
-    }
-
-    const leadInterval = theme.lead[stepIndex % theme.lead.length];
-    if (leadInterval !== null) {
-      scheduleTone(synth.context, synth.bgmGain, {
-        frequency: midiToFreq(theme.rootMidi + leadInterval),
-        start,
-        duration: stepDuration * 0.78,
-        gain: theme.leadGain,
-        wave: theme.leadWave,
-      });
-    }
-  }, []);
-
-  const playSyntheticBgm = useCallback(
-    async (label: string, themeId: SynthThemeId) => {
-      const synth = await ensureSynth();
-      if (!synth) return;
-      syncSynthLevels();
-      if (synth.themeId === themeId && bgmModeRef.current === "synth" && synthLabelRef.current === label && !synth.paused) {
-        setCurrentBgmName(label);
-        setBgmPlaying(!bgmMuted);
-        return;
-      }
-
-      if (bgmRef.current.src) {
-        bgmRef.current.pause();
-      }
-      if (bgmFadeRef.current.src) {
-        bgmFadeRef.current.pause();
-      }
-      stopSyntheticBgm();
-
-      const theme = SYNTH_THEMES[themeId];
-      const stepDuration = 60 / theme.tempo / 2;
-      synth.themeId = themeId;
-      synth.stepIndex = 0;
-      synth.nextNoteTime = synth.context.currentTime + 0.06;
-      synth.paused = false;
-      bgmModeRef.current = "synth";
-      synthLabelRef.current = label;
-
-      const scheduler = () => {
-        if (!synth.themeId || synth.paused) return;
-        while (synth.nextNoteTime < synth.context.currentTime + 0.24) {
-          scheduleThemeStep(synth, theme, synth.nextNoteTime, synth.stepIndex);
-          synth.nextNoteTime += stepDuration;
-          synth.stepIndex = (synth.stepIndex + 1) % Math.max(theme.bass.length, theme.lead.length, theme.progression.length * 2);
-        }
-        synth.schedulerId = window.setTimeout(scheduler, 70);
-      };
-
-      scheduler();
-      setCurrentBgmId("");
-      setCurrentBgmName(label);
-      setBgmPlaying(!bgmMuted);
-    },
-    [bgmMuted, ensureSynth, scheduleThemeStep, stopSyntheticBgm, syncSynthLevels],
-  );
-
-  const playUiCue = useCallback(
-    async (cue: UiCue) => {
-      const synth = await ensureSynth();
-      if (!synth) return;
-      syncSynthLevels();
-      const now = synth.context.currentTime + 0.01;
-      const cues: Record<UiCue, Array<{ midi: number; duration: number; gain: number }>> = {
-        soft: [{ midi: 76, duration: 0.08, gain: 0.024 }],
-        panel: [
-          { midi: 69, duration: 0.07, gain: 0.024 },
-          { midi: 76, duration: 0.09, gain: 0.02 },
-        ],
-        choice: [
-          { midi: 62, duration: 0.12, gain: 0.034 },
-          { midi: 69, duration: 0.18, gain: 0.03 },
-        ],
-        confirm: [
-          { midi: 71, duration: 0.1, gain: 0.028 },
-          { midi: 78, duration: 0.18, gain: 0.024 },
-        ],
-      };
-      cues[cue].forEach((note, idx) => {
-        scheduleTone(synth.context, synth.uiGain, {
-          frequency: midiToFreq(note.midi),
-          start: now + idx * 0.06,
-          duration: note.duration,
-          gain: note.gain,
-          wave: cue === "choice" ? "triangle" : "sine",
-        });
-      });
-    },
-    [ensureSynth, syncSynthLevels],
-  );
-
-  useEffect(() => {
-    syncSynthLevels();
-  }, [syncSynthLevels]);
-
   const crossfadeBgm = useCallback(
     async (assetId: string, name: string) => {
       if (!assetId) return;
       try {
         const blob = await AssetDB.get<Blob>(AssetDB.STORE_ASSETS, assetId);
         if (!blob) return;
-        stopSyntheticBgm();
 
         if (bgmRef.current.src && bgmPlaying) {
           const oldAudio = bgmRef.current;
@@ -936,7 +576,6 @@ export function App() {
         const temp = bgmRef.current;
         bgmRef.current = bgmFadeRef.current;
         bgmFadeRef.current = temp;
-        bgmModeRef.current = "asset";
         setBgmPlaying(true);
         setCurrentBgmId(assetId);
         setCurrentBgmName(name);
@@ -944,11 +583,10 @@ export function App() {
         // ignore autoplay and blob issues
       }
     },
-    [bgmMuted, bgmPlaying, settings.bgmVol, stopSyntheticBgm],
+    [bgmMuted, bgmPlaying, settings.bgmVol],
   );
 
   const stopBgm = useCallback(() => {
-    stopSyntheticBgm();
     bgmRef.current.pause();
     bgmRef.current.currentTime = 0;
     if (bgmUrlRef.current) {
@@ -959,9 +597,7 @@ export function App() {
     setBgmPlaying(false);
     setCurrentBgmId("");
     setCurrentBgmName("");
-    bgmModeRef.current = "none";
-    synthLabelRef.current = "";
-  }, [stopSyntheticBgm]);
+  }, []);
 
   const loadAndPlayBgm = useCallback(
     async (assetId: string) => {
@@ -972,7 +608,6 @@ export function App() {
       try {
         const blob = await AssetDB.get<Blob>(AssetDB.STORE_ASSETS, assetId);
         if (!blob) return;
-        stopSyntheticBgm();
         if (bgmUrlRef.current) URL.revokeObjectURL(bgmUrlRef.current);
         const url = URL.createObjectURL(blob);
         bgmUrlRef.current = url;
@@ -980,7 +615,6 @@ export function App() {
         bgmRef.current.volume = settings.bgmVol / 100;
         bgmRef.current.muted = bgmMuted;
         await bgmRef.current.play().catch(() => undefined);
-        bgmModeRef.current = "asset";
         setBgmPlaying(true);
         setCurrentBgmId(assetId);
         const match = bgmList.find((item) => item.id === assetId);
@@ -989,7 +623,7 @@ export function App() {
         // ignore
       }
     },
-    [bgmList, bgmMuted, settings.bgmVol, stopBgm, stopSyntheticBgm],
+    [bgmList, bgmMuted, settings.bgmVol, stopBgm],
   );
 
   const playSfx = useCallback(
@@ -1019,33 +653,17 @@ export function App() {
     if (match) {
       void crossfadeBgm(match.id, match.label);
     } else {
-      void playSyntheticBgm(curLine.bgm, resolveFallbackTheme(curLine.bgm, phase));
+      setCurrentBgmName(curLine.bgm);
     }
-  }, [bgmList, crossfadeBgm, curLine, currentBgmName, phase, playSyntheticBgm]);
+  }, [bgmList, crossfadeBgm, curLine, currentBgmName, phase]);
 
   useEffect(() => {
     if (phase !== "playing" || !curLine?.sfx) return;
     const match = sfxList.find((item) => item.label.includes(curLine.sfx || ""));
     if (match) {
       void playSfx(match.id);
-    } else {
-      void playUiCue(/心跳|金属|滑倒|敲门/.test(curLine.sfx) ? "choice" : "soft");
     }
-  }, [curLine, phase, playSfx, playUiCue, sfxList]);
-
-  useEffect(() => {
-    if (phase === "warning") {
-      stopBgm();
-      return;
-    }
-    if (phase === "title") {
-      void playSyntheticBgm("标题主题", "title");
-      return;
-    }
-    if (phase === "credits") {
-      void playSyntheticBgm("终幕主题", "ending");
-    }
-  }, [phase, playSyntheticBgm, stopBgm]);
+  }, [curLine, phase, playSfx, sfxList]);
 
   useEffect(() => {
     if (phase !== "playing") return;
@@ -1167,7 +785,6 @@ export function App() {
   }, [index, phase]);
 
   const handleChoice = useCallback((cmd: string) => {
-    void playUiCue("choice");
     if (cmd.startsWith("@jump")) {
       const label = cmd.replace("@jump", "").trim();
       const target = SCRIPT.labelMap.get(label);
@@ -1175,7 +792,7 @@ export function App() {
       return;
     }
     setIndex((value) => value + 1);
-  }, [index, playUiCue]);
+  }, [index]);
 
   useEffect(() => {
     if (autoTimeoutRef.current) {
@@ -1193,7 +810,6 @@ export function App() {
 
   const startNewGame = () => {
     if (startTransitioning) return;
-    void playUiCue("confirm");
     setStartTransitioning(true);
     setScreenFlashVisible(true);
     setIndex(0);
@@ -1211,22 +827,6 @@ export function App() {
   };
 
   const toggleBgm = useCallback(() => {
-    if (bgmModeRef.current === "synth") {
-      const synth = synthRef.current;
-      if (!synth?.themeId) return;
-      if (bgmPlaying) {
-        synth.paused = true;
-        if (synth.schedulerId) {
-          window.clearTimeout(synth.schedulerId);
-          synth.schedulerId = null;
-        }
-        synth.bgmGain.gain.setTargetAtTime(0.0001, synth.context.currentTime, 0.08);
-        setBgmPlaying(false);
-      } else {
-        void playSyntheticBgm(synthLabelRef.current || currentBgmName || "主题音乐", synth.themeId);
-      }
-      return;
-    }
     if (bgmPlaying) {
       bgmRef.current.pause();
       setBgmPlaying(false);
@@ -1235,18 +835,16 @@ export function App() {
     if (bgmRef.current.src) {
       void bgmRef.current.play().then(() => setBgmPlaying(true)).catch(() => undefined);
     }
-  }, [bgmPlaying, currentBgmName, playSyntheticBgm]);
+  }, [bgmPlaying]);
 
   const toggleMute = useCallback(() => {
     const next = !bgmMuted;
     bgmRef.current.muted = next;
     bgmFadeRef.current.muted = next;
     setBgmMuted(next);
-    syncSynthLevels();
-  }, [bgmMuted, syncSynthLevels]);
+  }, [bgmMuted]);
 
   const togglePanel = (name: string) => {
-    void playUiCue("panel");
     setActivePanel((prev) => (prev === name ? null : name));
   };
 
@@ -1271,7 +869,6 @@ export function App() {
         // ignore
       }
       alert("上传成功");
-      void playUiCue("confirm");
     };
     input.click();
   };
@@ -1351,12 +948,6 @@ export function App() {
     }
   }, [index, phase, saveGame]);
 
-  useEffect(() => {
-    if (phase === "playing" && curLine?.kind === "choice") {
-      void playUiCue("choice");
-    }
-  }, [curLine?.kind, index, phase, playUiCue]);
-
   const handleExportAllCodeTxt = () => {
     const files = [
       { path: ".gitignore", content: gitignoreSource },
@@ -1419,15 +1010,11 @@ export function App() {
 
   useEffect(() => {
     return () => {
-      stopSyntheticBgm();
       if (codeTxtUrlRef.current) URL.revokeObjectURL(codeTxtUrlRef.current);
       if (bgmUrlRef.current) URL.revokeObjectURL(bgmUrlRef.current);
       if (sfxUrlRef.current) URL.revokeObjectURL(sfxUrlRef.current);
-      if (synthRef.current && synthRef.current.context.state !== "closed") {
-        void synthRef.current.context.close().catch(() => undefined);
-      }
     };
-  }, [stopSyntheticBgm]);
+  }, []);
 
   const effectClasses = [
     effectActive === "shake" ? "fx-shake" : "",
@@ -1577,11 +1164,11 @@ export function App() {
                 <span className="title-btn-icon">▶</span>
                 <span>开始游戏</span>
               </button>
-              <button className="title-btn" onClick={() => { void playUiCue("panel"); setActivePanel("settings"); }}>
+              <button className="title-btn" onClick={() => setActivePanel("settings")}>
                 <span className="title-btn-icon">⚙</span>
                 <span>设置</span>
               </button>
-              <button className="title-btn" onClick={() => { void playUiCue("panel"); setActivePanel("assets"); }}>
+              <button className="title-btn" onClick={() => setActivePanel("assets")}>
                 <span className="title-btn-icon">♫</span>
                 <span>资源管理</span>
               </button>
