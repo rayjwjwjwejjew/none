@@ -1119,6 +1119,24 @@ export interface StageCharacter {
   position: "left" | "center" | "right";
   spriteUrl: string;
   isSpeaking: boolean;
+  expression: "calm" | "hesitant" | "panic" | "breakdown" | "shadow";
+}
+
+function inferExpression(line: ScriptLine | undefined, speaker: string, isSpeaking: boolean): StageCharacter["expression"] {
+  if (!line || !speaker) return "calm";
+  if (!isSpeaking) {
+    if (line.effect === "darken" || /地下室|深夜|秘密|调查/.test(line.scene || "")) return "shadow";
+    return "calm";
+  }
+
+  const text = line.text || "";
+  const stageText = [text, line.scene || "", line.effect || "", line.sfx || ""].join(" ");
+
+  if (/(崩溃|怒气|流泪|哽咽|怒|失控|眼眶湿润|痛哭|撕心裂肺)/.test(stageText)) return "breakdown";
+  if (line.effect === "shake" || /(惊恐|恐惧|颤抖|喘着气|不见了|怎么了|等等|喂|靠|呼|害怕|别|快)/.test(stageText)) return "panic";
+  if (line.effect === "darken" || /(地下室|黑暗|秘密|调查|沉重|压抑|冷|空洞|死寂|没有回答)/.test(stageText)) return "shadow";
+  if (/(沉默|犹豫|迟疑|轻声|低声|顿了一下|苦笑|半信半疑|将信将疑|……)/.test(stageText)) return "hesitant";
+  return "calm";
 }
 
 export function getSceneCharacters(
@@ -1157,6 +1175,7 @@ export function getSceneCharacters(
     position: positions[idx] ?? "center",
     spriteUrl: CHARACTER_SPRITES[name],
     isSpeaking: name === currentSpeaker,
+    expression: inferExpression(lines[currentIndex], name, name === currentSpeaker),
   }));
 }
 

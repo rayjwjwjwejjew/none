@@ -303,7 +303,7 @@ const StageSprites = memo(function StageSprites({ stageChars }: { stageChars: St
       {stageChars.map((ch) => (
         <div
           key={ch.name}
-          className={`sprite-multi show ${ch.position} ${ch.isSpeaking ? "speaking" : "not-speaking"}`}
+          className={`sprite-multi show ${ch.position} expression-${ch.expression} ${ch.isSpeaking ? "speaking" : "not-speaking"}`}
           style={{ backgroundImage: `url("${ch.spriteUrl}")` }}
         />
       ))}
@@ -371,10 +371,15 @@ export function App() {
   const [cgTitle, setCgTitle] = useState("");
   const [cgImageUrl, setCgImageUrl] = useState("");
   const [lowPerfMode, setLowPerfMode] = useState(false);
+  const [hudAwake, setHudAwake] = useState(false);
+  const [startTransitioning, setStartTransitioning] = useState(false);
+  const [screenFlashVisible, setScreenFlashVisible] = useState(false);
+  const [creditsRollReady, setCreditsRollReady] = useState(false);
 
   const autoTimeoutRef = useRef<number | null>(null);
   const typingFrameRef = useRef<number | null>(null);
   const typingDelayRef = useRef<number | null>(null);
+  const hudSleepRef = useRef<number | null>(null);
   const lastBgRef = useRef("");
   const codeTxtUrlRef = useRef("");
   const bgmRef = useRef<HTMLAudioElement>(new Audio());
@@ -419,6 +424,16 @@ export function App() {
     setTitleReady(false);
     return undefined;
   }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "credits") {
+      setCreditsRollReady(false);
+      return;
+    }
+    setCreditsRollReady(false);
+    const timer = window.setTimeout(() => setCreditsRollReady(true), lowPerfMode ? 900 : 1600);
+    return () => window.clearTimeout(timer);
+  }, [lowPerfMode, phase]);
 
   useEffect(() => {
     const root = document.documentElement.style;
@@ -794,11 +809,21 @@ export function App() {
   }, [auto, curLine, handleNext, phase, settings.autoMs, skip, typing]);
 
   const startNewGame = () => {
+    if (startTransitioning) return;
+    setStartTransitioning(true);
+    setScreenFlashVisible(true);
     setIndex(0);
     setLog([]);
     lastBgRef.current = "";
     setActivePanel(null);
-    setPhase("playing");
+    window.setTimeout(() => {
+      setPhase("playing");
+      setHudAwake(true);
+    }, 260);
+    window.setTimeout(() => {
+      setScreenFlashVisible(false);
+      setStartTransitioning(false);
+    }, 720);
   };
 
   const toggleBgm = useCallback(() => {
@@ -850,6 +875,11 @@ export function App() {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
+      if (phase === "playing") {
+        setHudAwake(true);
+        if (hudSleepRef.current) window.clearTimeout(hudSleepRef.current);
+        hudSleepRef.current = window.setTimeout(() => setHudAwake(false), 2200);
+      }
       if (phase === "warning") return;
       if (phase === "title") {
         if (event.key === "Escape") {
@@ -884,8 +914,33 @@ export function App() {
       }
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    return () => {
+      window.removeEventListener("keydown", handler);
+    };
   }, [activePanel, cgVisible, handleNext, handlePrev, phase, saveGame, showLog]);
+
+  useEffect(() => {
+    if (phase !== "playing") {
+      setHudAwake(false);
+      if (hudSleepRef.current) window.clearTimeout(hudSleepRef.current);
+      return;
+    }
+    const wakeHud = () => {
+      setHudAwake(true);
+      if (hudSleepRef.current) window.clearTimeout(hudSleepRef.current);
+      hudSleepRef.current = window.setTimeout(() => setHudAwake(false), 2200);
+    };
+    const onMove = (event: MouseEvent) => {
+      if (event.clientY <= 112 || event.clientX <= 112) wakeHud();
+    };
+
+    if (activePanel || showLog || cgVisible) setHudAwake(true);
+    window.addEventListener("mousemove", onMove);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      if (hudSleepRef.current) window.clearTimeout(hudSleepRef.current);
+    };
+  }, [activePanel, cgVisible, phase, showLog]);
 
   useEffect(() => {
     if (phase === "playing" && index > 0) {
@@ -1088,6 +1143,7 @@ export function App() {
           <div className="title-grid" />
           <div className="title-glow title-glow-left" />
           <div className="title-glow title-glow-right" />
+          <div className="title-sweep" />
           <DustCanvas active lowPerfMode={lowPerfMode} />
           <div className="title-content">
             <div className="title-kicker">悬疑视觉小说</div>
@@ -1102,6 +1158,7 @@ export function App() {
                 <div className="title-copy">凡盛放者，皆有所葬</div>
               </div>
             </div>
+            <div className="title-omen">在被花园覆盖的秘密里，有人仍在等待被看见。</div>
             <div className="title-menu">
               <button className="title-btn" onClick={startNewGame}>
                 <span className="title-btn-icon">▶</span>
@@ -1146,15 +1203,20 @@ export function App() {
           <div className="credits-bg" style={{ backgroundImage: `url("${DEFAULT_BG}")` }} />
           <div className="credits-overlay" />
           <div className="credits-vignette" />
-          <div className="credits-fixed">
+          <div className={`credits-fixed ${creditsRollReady ? "show" : ""}`}>
             <div className="credits-fixed-kicker">终幕</div>
             <div className="credits-fixed-title">盛开在谎言之上</div>
             <div className="credits-fixed-sub">——带你去极光尽头</div>
           </div>
+          <div className={`credits-prelude ${creditsRollReady ? "fade" : ""}`}>
+            <div className="credits-prelude-kicker">ENDING</div>
+            <div className="credits-prelude-title">凡盛放者，皆有所葬</div>
+            <div className="credits-prelude-copy">暮色落下之前，仍有人在谎言之上等待归途。</div>
+          </div>
           <button className="btn credits-return" onClick={() => setPhase("title")}>
             返回标题
           </button>
-          <div id="credits-content">
+          <div id="credits-content" className={creditsRollReady ? "roll" : ""}>
             <div className="credit-kicker">END ROLL</div>
             <div className="credit-title">制作团队</div>
             <div className="credit-subtitle">一个关于真相、记忆与归途的故事。</div>
@@ -1211,7 +1273,7 @@ export function App() {
             </div>
           )}
 
-          <div id="panelBar">
+          <div id="panelBar" className={`${hudAwake || activePanel || showLog ? "awake" : ""} ${activePanel ? "panel-open" : ""}`.trim()}>
             <button className="pbtn" onClick={handlePrev}>
               ◀
             </button>
@@ -1392,6 +1454,9 @@ export function App() {
           </div>
         </div>
       )}
+      <div className={`screen-flash ${screenFlashVisible ? "show start-flash" : ""}`}>
+        <div className="screen-flash-title">盛开在谎言之上</div>
+      </div>
     </div>
   );
 }

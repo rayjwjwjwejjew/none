@@ -199,6 +199,35 @@ textarea {
   background: rgba(90, 148, 204, 0.44);
 }
 
+.title-sweep {
+  position: absolute;
+  inset: 16% -16%;
+  z-index: 6;
+  background: linear-gradient(110deg, transparent 42%, rgba(255, 229, 196, 0.14) 50%, transparent 58%);
+  transform: translateX(-54%);
+  animation: titleSweep 4.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes titleSweep {
+  0%,
+  26% {
+    opacity: 0;
+    transform: translateX(-54%);
+  }
+  38% {
+    opacity: 1;
+  }
+  62% {
+    opacity: 0.7;
+    transform: translateX(54%);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(54%);
+  }
+}
+
 .title-content {
   position: relative;
   z-index: 10;
@@ -295,6 +324,16 @@ textarea {
   color: rgba(240, 234, 224, 0.74);
   font-size: 15px;
   letter-spacing: 0.2em;
+}
+
+.title-omen {
+  max-width: 560px;
+  color: rgba(234, 223, 210, 0.58);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  line-height: 1.9;
+  text-align: center;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.38);
 }
 
 .title-menu {
@@ -478,6 +517,53 @@ textarea {
   display: grid;
   gap: 6px;
   text-align: center;
+  opacity: 0;
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.credits-fixed.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.credits-prelude {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  text-align: center;
+  background: radial-gradient(circle at center, rgba(12, 10, 16, 0.34), rgba(4, 4, 8, 0.82));
+  opacity: 1;
+  transition: opacity 0.8s ease;
+  pointer-events: none;
+}
+
+.credits-prelude.fade {
+  opacity: 0;
+}
+
+.credits-prelude-kicker {
+  color: rgba(255, 228, 189, 0.58);
+  font-size: 12px;
+  letter-spacing: 0.36em;
+}
+
+.credits-prelude-title {
+  color: rgba(251, 244, 235, 0.94);
+  font-family: var(--font-title);
+  font-size: clamp(28px, 4vw, 44px);
+  letter-spacing: 0.16em;
+  text-shadow: 0 10px 28px rgba(0, 0, 0, 0.44);
+}
+
+.credits-prelude-copy {
+  max-width: 560px;
+  color: rgba(237, 228, 216, 0.68);
+  line-height: 1.9;
+  letter-spacing: 0.12em;
 }
 
 .credits-fixed-kicker {
@@ -507,6 +593,11 @@ textarea {
   width: min(760px, calc(100% - 32px));
   padding: 0 0 180px;
   text-align: center;
+  opacity: 0;
+}
+
+#credits-content.roll {
+  opacity: 1;
   animation: scrollUp 28s linear infinite;
 }
 
@@ -915,6 +1006,16 @@ textarea {
   will-change: opacity, transform, filter;
 }
 
+.sprite-multi::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.28s ease, background 0.28s ease;
+}
+
 .sprite-multi.left {
   left: 8%;
   transform-origin: center bottom;
@@ -953,6 +1054,53 @@ textarea {
   opacity: var(--sprite-opacity);
 }
 
+.sprite-multi.expression-calm::after {
+  background: radial-gradient(circle at 50% 20%, rgba(255, 239, 213, 0.1), transparent 48%);
+  opacity: 0.34;
+}
+
+.sprite-multi.expression-hesitant {
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.46)) saturate(0.92) brightness(0.98);
+}
+
+.sprite-multi.expression-hesitant::after {
+  background: linear-gradient(180deg, rgba(192, 214, 255, 0.12), transparent 60%);
+  opacity: 0.48;
+}
+
+.sprite-multi.expression-panic {
+  filter: drop-shadow(0 14px 34px rgba(0, 0, 0, 0.56)) saturate(1.08) contrast(1.06) brightness(1.02);
+}
+
+.sprite-multi.expression-panic::after {
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255, 245, 225, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(255, 142, 142, 0.14), transparent 64%);
+  opacity: 0.66;
+}
+
+.sprite-multi.expression-breakdown {
+  filter: drop-shadow(0 16px 36px rgba(0, 0, 0, 0.62)) saturate(1.18) contrast(1.08) brightness(0.98);
+}
+
+.sprite-multi.expression-breakdown::after {
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 228, 206, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(170, 26, 26, 0.14), transparent 64%);
+  opacity: 0.72;
+}
+
+.sprite-multi.expression-shadow {
+  filter: drop-shadow(0 16px 38px rgba(0, 0, 0, 0.66)) saturate(0.76) brightness(0.72) contrast(1.08);
+}
+
+.sprite-multi.expression-shadow::after {
+  background:
+    linear-gradient(180deg, rgba(28, 32, 54, 0.16), rgba(8, 8, 12, 0.26)),
+    radial-gradient(circle at 50% 14%, rgba(126, 148, 214, 0.08), transparent 34%);
+  opacity: 0.84;
+}
+
 .sprite-multi.show.speaking.left,
 .sprite-multi.show.speaking.right {
   transform: translateY(calc(var(--sprite-y) - 8px)) scale(1.08);
@@ -982,6 +1130,19 @@ textarea {
   50% {
     transform: translateX(-50%) translateY(calc(var(--sprite-y) - 10px)) scale(1.083);
   }
+}
+
+#panelBar {
+  opacity: 0.14;
+  transform: translateY(-10px);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+#panelBar.awake,
+#panelBar.panel-open,
+#panelBar:hover {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 #hud {
@@ -1068,6 +1229,66 @@ textarea {
   background: rgba(12, 10, 16, 0.44);
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+}
+
+.screen-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 160;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 2, 4, 0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.screen-flash.show {
+  animation: startFlash 0.72s ease forwards;
+}
+
+.screen-flash-title {
+  color: rgba(255, 245, 233, 0.92);
+  font-family: var(--font-title);
+  font-size: clamp(28px, 4.4vw, 48px);
+  letter-spacing: 0.18em;
+  text-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+}
+
+.screen-flash.show .screen-flash-title {
+  animation: startFlashTitle 0.72s ease forwards;
+}
+
+@keyframes startFlash {
+  0% {
+    opacity: 0;
+    background: rgba(2, 2, 4, 0);
+  }
+  18% {
+    opacity: 1;
+    background: rgba(2, 2, 4, 0.96);
+  }
+  100% {
+    opacity: 0;
+    background: rgba(2, 2, 4, 0);
+  }
+}
+
+@keyframes startFlashTitle {
+  0%,
+  12% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  28%,
+  48% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
 }
 
 .bgm-indicator-eyebrow {
@@ -1374,6 +1595,16 @@ textarea {
   gap: 6px;
   flex-wrap: wrap;
   max-width: calc(100% - 24px);
+  opacity: 0.14;
+  transform: translateY(-10px);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+#panelBar.awake,
+#panelBar.panel-open,
+#panelBar:hover {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .pbtn,
