@@ -1,8 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { jsPDF } from "jspdf";
 import "./index.css";
 import {
-  ALL_CONTENT_IMAGES,
   CHARACTER_COLORS,
   DEFAULT_BG,
   SCRIPT,
@@ -10,7 +8,7 @@ import {
   getSceneCharacters,
   getSpecialBg,
 } from "./engine";
-import type { ScriptLine, StageCharacter } from "./engine";
+import type { StageCharacter } from "./engine";
 import { AssetDB } from "./db";
 import appSource from "./App.tsx?raw";
 import mainSource from "./main.tsx?raw";
@@ -19,7 +17,11 @@ import scriptSource from "./script.ts?raw";
 import dbSource from "./db.ts?raw";
 import cssSource from "./index.css?raw";
 import cnSource from "./utils/cn.ts?raw";
+import viteEnvSource from "./vite-env.d.ts?raw";
 import indexHtmlSource from "../index.html?raw";
+import gitignoreSource from "../.gitignore?raw";
+import workflowSource from "../.github/workflows/deploy-pages.yml?raw";
+import packageLockSource from "../package-lock.json?raw";
 import packageJsonSource from "../package.json?raw";
 import tsconfigSource from "../tsconfig.json?raw";
 import viteConfigSource from "../vite.config.ts?raw";
@@ -91,6 +93,18 @@ function getBgmMoodClass(name: string): string {
   if (/(悬疑|压抑|紧张|高潮|审判|恐怖)/.test(name)) return "bgm-tense";
   if (/(告别|钢琴|日常|治愈|安静|忧郁|悲伤)/.test(name)) return "bgm-soft";
   return "bgm-neutral";
+}
+
+function getCodeFenceLanguage(path: string): string {
+  if (path.endsWith(".tsx")) return "tsx";
+  if (path.endsWith(".ts")) return "ts";
+  if (path.endsWith(".css")) return "css";
+  if (path.endsWith(".html")) return "html";
+  if (path.endsWith(".json")) return "json";
+  if (path.endsWith(".yml") || path.endsWith(".yaml")) return "yaml";
+  if (path.endsWith(".md")) return "md";
+  if (path.endsWith(".d.ts")) return "ts";
+  return "text";
 }
 
 const RainCanvas = memo(function RainCanvas({
@@ -338,8 +352,6 @@ export function App() {
   const [prevBgUrl, setPrevBgUrl] = useState("");
   const [currentAct, setCurrentAct] = useState("");
   const [activePanel, setActivePanel] = useState<string | null>(null);
-  const [exportingPdf, setExportingPdf] = useState(false);
-  const [pdfDownloadUrl, setPdfDownloadUrl] = useState("");
   const [codeTxtUrl, setCodeTxtUrl] = useState("");
   const [transitionActive, setTransitionActive] = useState(false);
   const [transitionType, setTransitionType] = useState("fade-black");
@@ -365,7 +377,6 @@ export function App() {
   const typingFrameRef = useRef<number | null>(null);
   const typingDelayRef = useRef<number | null>(null);
   const lastBgRef = useRef("");
-  const pdfUrlRef = useRef("");
   const codeTxtUrlRef = useRef("");
   const bgmRef = useRef<HTMLAudioElement>(new Audio());
   const bgmFadeRef = useRef<HTMLAudioElement>(new Audio());
@@ -725,23 +736,6 @@ export function App() {
     localStorage.setItem(KEY_SAVE, JSON.stringify(data));
   }, [currentAct, currentBgmName, index, log]);
 
-  const loadGame = useCallback((): boolean => {
-    try {
-      const raw = localStorage.getItem(KEY_SAVE);
-      if (!raw) return false;
-      const data = JSON.parse(raw) as { index?: number; log?: LogItem[]; act?: string; bgmName?: string };
-      setIndex(data.index || 0);
-      setLog(data.log || []);
-      setCurrentAct(data.act || "");
-      setCurrentBgmName(data.bgmName || "");
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  const hasSave = () => Boolean(localStorage.getItem(KEY_SAVE));
-
   const handleNext = useCallback(() => {
     if (phase !== "playing" || !curLine) return;
     if (cgVisible) {
@@ -815,15 +809,8 @@ export function App() {
     setLog([]);
     lastBgRef.current = "";
     shownActRef.current = "";
+    setActivePanel(null);
     setPhase("playing");
-  };
-
-  const continueGame = () => {
-    if (loadGame()) {
-      lastBgRef.current = "";
-      shownActRef.current = "";
-      setPhase("playing");
-    }
   };
 
   const toggleBgm = useCallback(() => {
@@ -877,7 +864,11 @@ export function App() {
     const handler = (event: KeyboardEvent) => {
       if (phase === "warning") return;
       if (phase === "title") {
-        if (event.key === " " || event.key === "Enter") {
+        if (event.key === "Escape") {
+          setActivePanel(null);
+          return;
+        }
+        if ((event.key === " " || event.key === "Enter") && !activePanel) {
           event.preventDefault();
           startNewGame();
         }
@@ -914,123 +905,12 @@ export function App() {
     }
   }, [index, phase, saveGame]);
 
-  const loadImageDataUrl = async (url: string): Promise<string | null> => {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return null;
-      const blob = await res.blob();
-      return await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(blob);
-      });
-    } catch {
-      return null;
-    }
-  };
-
-  const buildPdfDoc = async () => {
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 12;
-    const contentW = pageW - margin * 2;
-    let y = margin;
-
-    const ensureSpace = (needed: number) => {
-      if (y + needed > pageH - margin) {
-        doc.addPage();
-        y = margin;
-      }
-    };
-
-    const writeBlock = (text: string, size = 11, gap = 6) => {
-      doc.setFontSize(size);
-      const lines = doc.splitTextToSize(text, contentW);
-      const lineH = size * 0.45 + 1.8;
-      ensureSpace(lines.length * lineH + 2);
-      doc.text(lines, margin, y);
-      y += lines.length * lineH + gap;
-    };
-
-    doc.setFont("helvetica", "bold");
-    writeBlock("VN Studio - 剧情与内容图片导出", 16, 8);
-    doc.setFont("helvetica", "normal");
-    writeBlock(`导出时间: ${new Date().toLocaleString()}`, 10, 8);
-
-    writeBlock("第一部分：完整剧情", 13, 6);
-    SCRIPT.lines.forEach((line: ScriptLine) => {
-      if (line.kind === "label") return;
-      if (line.kind === "title") {
-        writeBlock(`【${line.text || line.act}】`, 12, 3);
-        return;
-      }
-      if (line.kind === "choice") {
-        writeBlock("【选项】", 11, 2);
-        (line.options || []).forEach((opt, idx) => writeBlock(`${idx + 1}. ${opt.text}`, 10, 1));
-        y += 2;
-        return;
-      }
-      writeBlock(`${line.speaker || "旁白"}: ${line.text || ""}`, 10, 2);
-    });
-
-    doc.addPage();
-    y = margin;
-    doc.setFont("helvetica", "bold");
-    writeBlock("第二部分：内容图片（原图链接与预览）", 13, 6);
-    doc.setFont("helvetica", "normal");
-
-    for (let i = 0; i < ALL_CONTENT_IMAGES.length; i += 1) {
-      const url = ALL_CONTENT_IMAGES[i];
-      writeBlock(`[${i + 1}] ${url}`, 9, 2);
-      const dataUrl = await loadImageDataUrl(url);
-      if (!dataUrl) {
-        writeBlock("预览加载失败，已保留原图链接。", 9, 4);
-        continue;
-      }
-      ensureSpace(50);
-      try {
-        const format = dataUrl.startsWith("data:image/png") ? "PNG" : "JPEG";
-        doc.addImage(dataUrl, format, margin, y, contentW, 42);
-        y += 48;
-      } catch {
-        writeBlock("预览加载失败，已保留原图链接。", 9, 4);
-      }
-    }
-
-    return doc;
-  };
-
-  const handleExportPdf = async () => {
-    if (exportingPdf) return;
-    setExportingPdf(true);
-    try {
-      const doc = await buildPdfDoc();
-      doc.save("VN_剧情与内容图片.pdf");
-    } finally {
-      setExportingPdf(false);
-    }
-  };
-
-  const handleGeneratePdfLink = async () => {
-    if (exportingPdf) return;
-    setExportingPdf(true);
-    try {
-      const doc = await buildPdfDoc();
-      const blob = doc.output("blob") as Blob;
-      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
-      const url = URL.createObjectURL(blob);
-      pdfUrlRef.current = url;
-      setPdfDownloadUrl(url);
-    } finally {
-      setExportingPdf(false);
-    }
-  };
-
   const handleExportAllCodeTxt = () => {
     const files = [
+      { path: ".gitignore", content: gitignoreSource },
+      { path: ".github/workflows/deploy-pages.yml", content: workflowSource },
       { path: "index.html", content: indexHtmlSource },
+      { path: "package-lock.json", content: packageLockSource },
       { path: "package.json", content: packageJsonSource },
       { path: "tsconfig.json", content: tsconfigSource },
       { path: "vite.config.ts", content: viteConfigSource },
@@ -1040,13 +920,16 @@ export function App() {
       { path: "src/script.ts", content: scriptSource },
       { path: "src/db.ts", content: dbSource },
       { path: "src/index.css", content: cssSource },
+      { path: "src/vite-env.d.ts", content: viteEnvSource },
       { path: "src/utils/cn.ts", content: cnSource },
-    ];
+    ].map((file) => ({ ...file, language: getCodeFenceLanguage(file.path) }));
 
     const header = [
-      "VN Studio - 全部代码导出",
+      "VN Studio - 完整源码导出",
       `导出时间: ${new Date().toLocaleString()}`,
       `文件数: ${files.length}`,
+      "",
+      "说明：以下内容按原始文件路径逐个导出，每个文件使用独立代码块包裹，便于校验与还原。",
       "",
       "========================================",
       "",
@@ -1056,8 +939,11 @@ export function App() {
       .map((file) =>
         [
           `FILE: ${file.path}`,
+          `LANG: ${file.language}`,
           "----------------------------------------",
-          file.content,
+          `\`\`\`${file.language}`,
+          file.content.replace(/\s+$/u, ""),
+          "```",
           "",
           "========================================",
           "",
@@ -1081,7 +967,6 @@ export function App() {
 
   useEffect(() => {
     return () => {
-      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
       if (codeTxtUrlRef.current) URL.revokeObjectURL(codeTxtUrlRef.current);
       if (bgmUrlRef.current) URL.revokeObjectURL(bgmUrlRef.current);
       if (sfxUrlRef.current) URL.revokeObjectURL(sfxUrlRef.current);
@@ -1105,6 +990,89 @@ export function App() {
   const currentBgmLabel = bgmList.find((item) => item.id === currentBgmId)?.label || currentBgmName || "";
   const bgmMoodClass = getBgmMoodClass(currentBgmLabel);
   const sceneProgress = `${Math.min(index + 1, SCRIPT.lines.length)}/${SCRIPT.lines.length}`;
+  const titlePanelOpen = phase === "title" && (activePanel === "settings" || activePanel === "assets");
+
+  const settingsPanelContent = (
+    <>
+      <div className="card">
+        <div className="row">
+          <span className="label">文字速度</span>
+          <input type="range" min="0" max="60" value={settings.typeMs} onChange={(e) => setSettings((s) => ({ ...s, typeMs: Number(e.target.value) }))} />
+          <span className="tiny mono">{settings.typeMs}ms</span>
+        </div>
+        <div className="row">
+          <span className="label">自动间隔</span>
+          <input type="range" min="180" max="2200" step="20" value={settings.autoMs} onChange={(e) => setSettings((s) => ({ ...s, autoMs: Number(e.target.value) }))} />
+          <span className="tiny mono">{settings.autoMs}ms</span>
+        </div>
+        <div className="row">
+          <span className="label">屏幕暗度</span>
+          <input type="range" min="0" max="40" value={settings.dim} onChange={(e) => setSettings((s) => ({ ...s, dim: Number(e.target.value) }))} />
+          <span className="tiny mono">{settings.dim}%</span>
+        </div>
+        <div className="row">
+          <span className="label">立绘尺寸</span>
+          <input type="range" min="140" max="420" step="10" value={settings.spriteW} onChange={(e) => setSettings((s) => ({ ...s, spriteW: Number(e.target.value) }))} />
+          <span className="tiny mono">{settings.spriteW}px</span>
+        </div>
+        <div className="row">
+          <span className="label">立绘透明度</span>
+          <input type="range" min="0" max="100" value={settings.spriteOpacity} onChange={(e) => setSettings((s) => ({ ...s, spriteOpacity: Number(e.target.value) }))} />
+          <span className="tiny mono">{settings.spriteOpacity}%</span>
+        </div>
+        <div className="row">
+          <span className="label">背景缩放</span>
+          <input type="range" min="100" max="150" value={settings.bgScale} onChange={(e) => setSettings((s) => ({ ...s, bgScale: Number(e.target.value) }))} />
+          <span className="tiny mono">{settings.bgScale}%</span>
+        </div>
+        <div className="row">
+          <span className="label">对话层透明</span>
+          <input type="range" min="0" max="100" value={settings.uiAlpha} onChange={(e) => setSettings((s) => ({ ...s, uiAlpha: Number(e.target.value) }))} />
+          <span className="tiny mono">{settings.uiAlpha}%</span>
+        </div>
+        <div className="row">
+          <button className="btn" onClick={() => setSettings(DEFAULT_SETTINGS)}>
+            恢复默认
+          </button>
+          <span className="tiny">标题页只预览配置，开始游戏后仍可在左上角继续调整。</span>
+        </div>
+      </div>
+    </>
+  );
+
+  const assetsPanelContent = (
+    <>
+      <div className="card">
+        <div className="row">
+          <button className="btn" onClick={() => uploadAsset("bg")}>
+            上传背景
+          </button>
+          <button className="btn" onClick={() => uploadAsset("sprite")}>
+            上传立绘
+          </button>
+          <button className="btn" onClick={() => uploadAsset("bgm")}>
+            上传BGM
+          </button>
+          <button className="btn" onClick={() => uploadAsset("sfx")}>
+            上传音效
+          </button>
+        </div>
+        <div className="tiny">资源会保存在浏览器本地（IndexedDB）。</div>
+        <div className="tiny" style={{ marginTop: 6 }}>TXT 导出会按原始路径完整输出源码；PDF 导出已移除。</div>
+      </div>
+      <div className="card">
+        <div className="row">
+          <span className="label">已上传BGM</span>
+          <span className="tiny mono">{bgmList.length}</span>
+        </div>
+        <div className="row">
+          <span className="label">已上传音效</span>
+          <span className="tiny mono">{sfxList.length}</span>
+        </div>
+        <div className="tiny">建议文件名包含脚本关键词，便于自动匹配。</div>
+      </div>
+    </>
+  );
 
   return (
     <div id="app-root">
@@ -1136,15 +1104,14 @@ export function App() {
           <div className="title-content">
             <div className="title-kicker">PSYCHOLOGICAL MYSTERY VISUAL NOVEL</div>
             <div className="title-logo">
-              <div className="title-seal">魂</div>
               <div className="title-logo-core">
-                <div className="title-main-glow">魂归于天</div>
-                <div className="title-main">魂归于天</div>
+                <div className="title-main-glow">盛开在谎言之上</div>
+                <div className="title-main">盛开在谎言之上</div>
                 <div className="title-divider">
                   <span />
                 </div>
-                <div className="title-sub">A Soul Returns to the Sky</div>
-                <div className="title-copy">真相被埋进花园之后，仍有人在暮色里等待回家。</div>
+                <div className="title-sub">——带你去极光尽头</div>
+                <div className="title-copy">凡盛放者，皆有所葬</div>
               </div>
             </div>
             <div className="title-menu">
@@ -1152,29 +1119,11 @@ export function App() {
                 <span className="title-btn-icon">▶</span>
                 <span>开始游戏</span>
               </button>
-              {hasSave() && (
-                <button className="title-btn" onClick={continueGame}>
-                  <span className="title-btn-icon">↻</span>
-                  <span>继续游戏</span>
-                </button>
-              )}
-              <button
-                className="title-btn"
-                onClick={() => {
-                  setPhase("playing");
-                  togglePanel("settings");
-                }}
-              >
+              <button className="title-btn" onClick={() => setActivePanel("settings")}>
                 <span className="title-btn-icon">⚙</span>
                 <span>设置</span>
               </button>
-              <button
-                className="title-btn"
-                onClick={() => {
-                  setPhase("playing");
-                  togglePanel("assets");
-                }}
-              >
+              <button className="title-btn" onClick={() => setActivePanel("assets")}>
                 <span className="title-btn-icon">♫</span>
                 <span>资源管理</span>
               </button>
@@ -1185,6 +1134,22 @@ export function App() {
               <span className="title-footer-line" />
             </div>
           </div>
+          {titlePanelOpen && (
+            <div className="title-panel-overlay" onClick={() => setActivePanel(null)}>
+              <div className="title-panel-shell" onClick={(event) => event.stopPropagation()}>
+                <div className="title-panel-head">
+                  <div>
+                    <div className="title-panel-kicker">MENU</div>
+                    <div className="title-panel-title">{activePanel === "settings" ? "设置" : "资源管理"}</div>
+                  </div>
+                  <button className="title-panel-close" onClick={() => setActivePanel(null)}>
+                    关闭
+                  </button>
+                </div>
+                <div className="title-panel-body">{activePanel === "settings" ? settingsPanelContent : assetsPanelContent}</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1195,8 +1160,8 @@ export function App() {
           <div className="credits-vignette" />
           <div className="credits-fixed">
             <div className="credits-fixed-kicker">ENDING</div>
-            <div className="credits-fixed-title">魂归于天</div>
-            <div className="credits-fixed-sub">A Soul Returns to the Sky</div>
+            <div className="credits-fixed-title">盛开在谎言之上</div>
+            <div className="credits-fixed-sub">——带你去极光尽头</div>
           </div>
           <button className="btn credits-return" onClick={() => setPhase("title")}>
             返回标题
@@ -1297,17 +1262,6 @@ export function App() {
             <button className="pbtn" onClick={() => { setPhase("title"); setAuto(false); setSkip(false); }}>
               标题
             </button>
-            <button className="pbtn" onClick={handleExportPdf} disabled={exportingPdf}>
-              {exportingPdf ? "..." : "PDF"}
-            </button>
-            <button className="pbtn" onClick={handleGeneratePdfLink} disabled={exportingPdf}>
-              PDF链接
-            </button>
-            {pdfDownloadUrl && (
-              <a className="pbtn" href={pdfDownloadUrl} download="VN_剧情与内容图片.pdf" style={{ textDecoration: "none" }}>
-                ⬇PDF
-              </a>
-            )}
             <button className="pbtn" onClick={handleExportAllCodeTxt}>
               代码
             </button>
@@ -1319,70 +1273,11 @@ export function App() {
           </div>
 
           <div className={`panel ${activePanel === "assets" ? "show" : ""}`}>
-            <div className="card">
-              <div className="row">
-                <button className="btn" onClick={() => uploadAsset("bg")}>
-                  上传背景
-                </button>
-                <button className="btn" onClick={() => uploadAsset("sprite")}>
-                  上传立绘
-                </button>
-                <button className="btn" onClick={() => uploadAsset("bgm")}>
-                  上传BGM
-                </button>
-                <button className="btn" onClick={() => uploadAsset("sfx")}>
-                  上传音效
-                </button>
-              </div>
-              <div className="tiny">资源会保存在浏览器本地（IndexedDB）。</div>
-              <div className="tiny" style={{ marginTop: 6 }}>音效资源会按文件名和脚本里的音效文字自动匹配。</div>
-            </div>
+            {assetsPanelContent}
           </div>
 
           <div className={`panel ${activePanel === "settings" ? "show" : ""}`}>
-            <div className="card">
-              <div className="row">
-                <span className="label">文字速度</span>
-                <input type="range" min="0" max="60" value={settings.typeMs} onChange={(e) => setSettings((s) => ({ ...s, typeMs: Number(e.target.value) }))} />
-                <span className="tiny mono">{settings.typeMs}ms</span>
-              </div>
-              <div className="row">
-                <span className="label">自动间隔</span>
-                <input type="range" min="180" max="2200" step="20" value={settings.autoMs} onChange={(e) => setSettings((s) => ({ ...s, autoMs: Number(e.target.value) }))} />
-                <span className="tiny mono">{settings.autoMs}ms</span>
-              </div>
-              <div className="row">
-                <span className="label">屏幕暗度</span>
-                <input type="range" min="0" max="40" value={settings.dim} onChange={(e) => setSettings((s) => ({ ...s, dim: Number(e.target.value) }))} />
-                <span className="tiny mono">{settings.dim}%</span>
-              </div>
-              <div className="row">
-                <span className="label">立绘尺寸</span>
-                <input type="range" min="140" max="420" step="10" value={settings.spriteW} onChange={(e) => setSettings((s) => ({ ...s, spriteW: Number(e.target.value) }))} />
-                <span className="tiny mono">{settings.spriteW}px</span>
-              </div>
-              <div className="row">
-                <span className="label">立绘透明度</span>
-                <input type="range" min="0" max="100" value={settings.spriteOpacity} onChange={(e) => setSettings((s) => ({ ...s, spriteOpacity: Number(e.target.value) }))} />
-                <span className="tiny mono">{settings.spriteOpacity}%</span>
-              </div>
-              <div className="row">
-                <span className="label">背景缩放</span>
-                <input type="range" min="100" max="150" value={settings.bgScale} onChange={(e) => setSettings((s) => ({ ...s, bgScale: Number(e.target.value) }))} />
-                <span className="tiny mono">{settings.bgScale}%</span>
-              </div>
-              <div className="row">
-                <span className="label">对话层透明</span>
-                <input type="range" min="0" max="100" value={settings.uiAlpha} onChange={(e) => setSettings((s) => ({ ...s, uiAlpha: Number(e.target.value) }))} />
-                <span className="tiny mono">{settings.uiAlpha}%</span>
-              </div>
-              <div className="row">
-                <button className="btn" onClick={() => setSettings(DEFAULT_SETTINGS)}>
-                  恢复默认
-                </button>
-                <span className="tiny">空格/回车下一句 · Backspace回退 · L历史 · S存档</span>
-              </div>
-            </div>
+            {settingsPanelContent}
             <div className="card">
               <div className="row">
                 <span className="label">场景信息</span>

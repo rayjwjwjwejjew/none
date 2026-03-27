@@ -217,9 +217,8 @@ textarea {
 }
 
 .title-logo {
-  display: flex;
-  align-items: center;
-  gap: 24px;
+  display: grid;
+  place-items: center;
   text-align: center;
   margin-bottom: 34px;
 }
@@ -230,42 +229,17 @@ textarea {
   color: rgba(245, 230, 205, 0.56);
 }
 
-.title-seal {
-  display: grid;
-  place-items: center;
-  width: 86px;
-  height: 86px;
-  border: 1px solid rgba(255, 225, 190, 0.26);
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(70, 34, 28, 0.7), rgba(28, 16, 18, 0.68));
-  color: rgba(255, 236, 212, 0.92);
-  font-family: var(--font-title);
-  font-size: 42px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.26);
-  animation: titleSealPulse 4.4s ease-in-out infinite;
-}
-
-@keyframes titleSealPulse {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.26);
-  }
-  50% {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 22px 44px rgba(0, 0, 0, 0.3);
-  }
-}
-
 .title-logo-core {
   position: relative;
+  display: grid;
+  justify-items: center;
 }
 
 .title-main {
   position: relative;
   font-family: var(--font-title);
   font-size: clamp(42px, 8vw, 74px);
-  letter-spacing: 12px;
+  letter-spacing: 0.18em;
   color: rgba(248, 242, 236, 0.96);
   text-shadow: 0 3px 30px rgba(201, 166, 116, 0.18), 0 4px 26px rgba(0, 0, 0, 0.86);
   animation: titleBreath 4.8s ease-in-out infinite;
@@ -276,7 +250,7 @@ textarea {
   inset: 0;
   font-family: var(--font-title);
   font-size: clamp(42px, 8vw, 74px);
-  letter-spacing: 12px;
+  letter-spacing: 0.18em;
   color: rgba(255, 226, 177, 0.26);
   filter: blur(14px);
   transform: translateY(2px);
@@ -311,16 +285,16 @@ textarea {
 .title-sub {
   margin-top: 14px;
   font-family: var(--font-title);
-  font-size: clamp(13px, 2vw, 18px);
-  color: rgba(231, 217, 198, 0.64);
-  letter-spacing: 6px;
+  font-size: clamp(18px, 2.2vw, 24px);
+  color: rgba(231, 217, 198, 0.78);
+  letter-spacing: 0.16em;
 }
 
 .title-copy {
   margin-top: 14px;
-  color: rgba(240, 234, 224, 0.72);
-  font-size: 14px;
-  letter-spacing: 0.12em;
+  color: rgba(240, 234, 224, 0.74);
+  font-size: 15px;
+  letter-spacing: 0.2em;
 }
 
 .title-menu {
@@ -388,6 +362,73 @@ textarea {
   50% {
     opacity: 0.6;
   }
+}
+
+.title-panel-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(16px);
+}
+
+.title-panel-shell {
+  width: min(720px, calc(100vw - 36px));
+  max-height: min(82vh, 760px);
+  overflow: auto;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 228, 198, 0.14);
+  background:
+    linear-gradient(180deg, rgba(18, 14, 18, 0.88), rgba(10, 8, 12, 0.92)),
+    rgba(0, 0, 0, 0.34);
+  box-shadow: 0 24px 68px rgba(0, 0, 0, 0.42);
+}
+
+.title-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 26px 18px;
+  border-bottom: 1px solid rgba(255, 228, 198, 0.1);
+}
+
+.title-panel-kicker {
+  color: rgba(244, 222, 186, 0.54);
+  font-size: 11px;
+  letter-spacing: 0.36em;
+}
+
+.title-panel-title {
+  margin-top: 6px;
+  color: rgba(250, 243, 233, 0.94);
+  font-family: var(--font-title);
+  font-size: 28px;
+  letter-spacing: 0.16em;
+}
+
+.title-panel-close {
+  border: 1px solid rgba(255, 231, 206, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(248, 242, 234, 0.88);
+  cursor: pointer;
+  padding: 10px 16px;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.title-panel-close:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 231, 206, 0.26);
+}
+
+.title-panel-body {
+  padding: 8px 18px 18px;
 }
 
 #credits-screen {
@@ -1650,15 +1691,7 @@ textarea {
   }
 
   .title-logo {
-    flex-direction: column;
-    gap: 18px;
-  }
-
-  .title-seal {
-    width: 68px;
-    height: 68px;
-    border-radius: 18px;
-    font-size: 32px;
+    margin-bottom: 24px;
   }
 
   .title-copy {
@@ -1683,6 +1716,22 @@ textarea {
   .credits-return {
     right: 16px;
     bottom: 16px;
+  }
+
+  .title-panel-overlay {
+    padding: 14px;
+  }
+
+  .title-panel-head {
+    padding: 18px 18px 14px;
+  }
+
+  .title-panel-title {
+    font-size: 22px;
+  }
+
+  .title-panel-body {
+    padding: 6px 10px 12px;
   }
 
   .credit-card {
