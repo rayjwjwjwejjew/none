@@ -1174,7 +1174,7 @@ export function App() {
                 <div className="title-copy">凡盛放者，皆有所葬</div>
               </div>
             </div>
-            <div className="title-omen">。</div>
+            <div className="title-omen">              </div>
             <div className="title-menu">
               <button className="title-btn" onClick={startNewGame}>
                 <span className="title-btn-icon">▶</span>
