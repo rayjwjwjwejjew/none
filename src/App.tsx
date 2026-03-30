@@ -82,7 +82,10 @@ const TITLE_SCREEN_BG = "https://i.imgur.com/FAWl3AP.png";
 const CORNER_IMG_URL = "https://i.imgur.com/NVGVJiU.png";
 
 const QA_ITEMS = [
-  { q: "1、为什么做？", a: "因为m" },
+  { q: "1、为什么做这个？", a: "m成分占比太高" },
+  { q: "2、后面还会更新吗？", a: "会，后面还会出第二部或者番外补充一些角色背景吧" },
+  { q: "3、这个奇怪生物是什么（重要)？", a: "后续我当做不影响剧情和体验的吐槽旁白，要在剧情点击才会进行吐槽" },
+  { q: "4、这个故事有原型吗？", a: "难说" },
 ];
 
 function readJson<T extends Record<string, unknown>>(key: string, fallback: T): T {
@@ -1184,7 +1187,7 @@ export function App() {
                 <div className="title-copy">凡盛放者，皆有所葬</div>
               </div>
             </div>
-            <div className="title-omen">在被花园覆盖的秘密里，有人仍在等待被看见。</div>
+            <div className="title-omen"></div>
             <div className="title-menu">
               <button className="title-btn" onClick={startNewGame}>
                 <span className="title-btn-icon">▶</span>
@@ -1216,8 +1219,8 @@ export function App() {
               position: "absolute",
               right: "220px",
               bottom: "120px",
-              width: "170px",
-              height: "170px",
+              width: "240px",
+              height: "240px",
               border: "none",
               padding: 0,
               background: "transparent",
