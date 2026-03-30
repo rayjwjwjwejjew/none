@@ -1195,6 +1195,160 @@ export function App() {
               <span className="title-footer-line" />
             </div>
           </div>
+          <button
+  type="button"
+  onClick={() => {
+    setShowQaPanel(true);
+    setOpenQaIndex(null);
+  }}
+  style={{
+    position: "absolute",
+    right: "220px",
+    bottom: "120px",
+    width: "170px",
+    height: "170px",
+    border: "none",
+    padding: 0,
+    background: "transparent",
+    cursor: "pointer",
+    zIndex: 30,
+  }}
+  aria-label="打开问答"
+>
+  <img
+    src={CORNER_IMG_URL}
+    alt="问答入口"
+    style={{
+      width: "100%",
+      height: "100%",
+      objectFit: "contain",
+      display: "block",
+      filter: "drop-shadow(0 12px 24px rgba(0,0,0,0.35))",
+      userSelect: "none",
+      pointerEvents: "none",
+    }}
+  />
+</button>
+
+{showQaPanel && (
+  <div
+    onClick={() => {
+      setShowQaPanel(false);
+      setOpenQaIndex(null);
+    }}
+    style={{
+      position: "absolute",
+      inset: 0,
+      zIndex: 40,
+      background: "rgba(0,0,0,0.45)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "24px",
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: "min(560px, 92vw)",
+        maxHeight: "80vh",
+        overflowY: "auto",
+        borderRadius: "24px",
+        padding: "22px",
+        background: "rgba(12,16,28,0.88)",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        color: "#fff",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "14px",
+        }}
+      >
+        <div>
+          <div style={{ fontSize: "12px", opacity: 0.7, letterSpacing: "0.12em" }}>
+            Q&A
+          </div>
+          <div style={{ fontSize: "24px", fontWeight: 700 }}>
+            制作问答
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setShowQaPanel(false);
+            setOpenQaIndex(null);
+          }}
+          style={{
+            border: "none",
+            borderRadius: "12px",
+            padding: "8px 12px",
+            cursor: "pointer",
+            background: "rgba(255,255,255,0.10)",
+            color: "#fff",
+          }}
+        >
+          关闭
+        </button>
+      </div>
+
+      <div style={{ display: "grid", gap: "12px" }}>
+        {QA_ITEMS.map((item, idx) => {
+          const opened = openQaIndex === idx;
+          return (
+            <div
+              key={item.q}
+              style={{
+                borderRadius: "16px",
+                overflow: "hidden",
+                border: "1px solid rgba(255,255,255,0.08)",
+                background: "rgba(255,255,255,0.04)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setOpenQaIndex(opened ? null : idx)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  border: "none",
+                  background: "transparent",
+                  color: "#fff",
+                  padding: "16px 18px",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  fontWeight: 600,
+                }}
+              >
+                {item.q}
+              </button>
+
+              {opened && (
+                <div
+                  style={{
+                    padding: "0 18px 18px",
+                    color: "rgba(255,255,255,0.86)",
+                    lineHeight: 1.8,
+                    fontSize: "15px",
+                  }}
+                >
+                  {item.a}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </div>
+)}
           {titlePanelOpen && (
             <div className="title-panel-overlay" onClick={() => setActivePanel(null)}>
               <div className="title-panel-shell" onClick={(event) => event.stopPropagation()}>
