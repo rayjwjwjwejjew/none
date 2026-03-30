@@ -1214,23 +1214,37 @@ export function App() {
         </div>
       )}
 
-      {phase === "credits" && (
-        <div id="credits-screen" className="show">
-          <div className="credits-bg" style={{ backgroundImage: `url("${DEFAULT_BG}")` }} />
-          <div className="credits-overlay" />
-          <div className="credits-vignette" />
-          <div className={`credits-fixed ${creditsRollReady ? "show" : ""}`}>
-            <div className="credits-fixed-kicker">终幕</div>
-            <div className="credits-fixed-title">盛开在谎言之上</div>
-            <div className="credits-fixed-sub">——带你去极光尽头</div>
-          </div>
-          <div className={`credits-prelude ${creditsRollReady ? "fade" : ""}`}>
-            <div className="credits-prelude-kicker">ENDING</div>
-            <div className="credits-prelude-title">凡盛放者，皆有所葬</div>
-            <div className="credits-prelude-copy">暮色落下之前，仍有人在谎言之上等待归途。</div>
-          </div>
-          <button className="btn credits-return" onClick={() => setPhase("title")}>
-            返回标题
+     {phase === "credits" && (
+  <div id="credits-screen" className="show">
+    <div
+      className="credits-bg"
+      style={{
+        backgroundImage: 'url("https://i.imgur.com/FAWl3AP.png")',
+        filter: "blur(7px)",
+        transform: "scale(1.08)",
+        opacity: 0.92,
+      }}
+    />
+    <div
+      className="credits-overlay"
+      style={{
+        background:
+          "linear-gradient(180deg, rgba(4,8,18,0.30) 0%, rgba(4,8,18,0.54) 52%, rgba(4,8,18,0.72) 100%)",
+      }}
+    />
+    <div className="credits-vignette" />
+    <div className={`credits-fixed ${creditsRollReady ? "show" : ""}`}>
+      <div className="credits-fixed-kicker">终幕</div>
+      <div className="credits-fixed-title">盛开在谎言之上</div>
+      <div className="credits-fixed-sub">——带你去极光尽头</div>
+    </div>
+    <div className={`credits-prelude ${creditsRollReady ? "fade" : ""}`}>
+      <div className="credits-prelude-kicker">ENDING</div>
+      <div className="credits-prelude-title">凡盛放者，皆有所葬</div>
+      <div className="credits-prelude-copy">暮色落下之前，仍有人在谎言之上等待归途。</div>
+    </div>
+    <button className="btn credits-return" onClick={() => setPhase("title")}>
+      返回标题
           </button>
           <div id="credits-content" className={creditsRollReady ? "roll" : ""}>
             <div className="credit-kicker">END ROLL</div>
