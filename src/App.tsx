@@ -78,6 +78,8 @@ const CREDITS_BLOCKS = [
   { role: "剧情测试", names: "Ray、Justin" },
 ];
 
+const TITLE_SCREEN_BG = "https://i.imgur.com/FAWl3AP.png";
+
 function readJson<T extends Record<string, unknown>>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -1136,8 +1138,22 @@ export function App() {
 
       {phase === "title" && (
         <div id="title-screen" className={titleReady ? "ready" : ""}>
-          <div className="title-bg" style={{ backgroundImage: `url("${DEFAULT_BG}")` }} />
-          <div className="title-overlay" />
+          <div
+            className="title-bg"
+            style={{
+              backgroundImage: `url("${TITLE_SCREEN_BG}")`,
+              filter: "blur(7px)",
+              transform: "scale(1.08)",
+              opacity: 0.92,
+            }}
+          />
+          <div
+            className="title-overlay"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(4,8,18,0.30) 0%, rgba(4,8,18,0.54) 52%, rgba(4,8,18,0.72) 100%)",
+            }}
+          />
           <div className="title-film title-film-top" />
           <div className="title-film title-film-bottom" />
           <div className="title-grid" />
