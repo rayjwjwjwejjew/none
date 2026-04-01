@@ -20,6 +20,8 @@ export interface ParsedScript {
   labelMap: Map<string, number>;
 }
 
+type CharacterExpression = "calm" | "hesitant" | "panic" | "breakdown" | "shadow";
+
 function svgDataUri(svg: string): string {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
     svg
@@ -217,6 +219,9 @@ function rainySchoolScene() {
 }
 
 function dormScene(night = false) {
+  if (!night) {
+    return "https://i.imgur.com/pR8zjdc.png";
+  }
   return createSceneSvg(`
     <rect width="1600" height="900" fill="${night ? "#111929" : "#f4f1e7"}"/>
     <rect width="1600" height="900" fill="${night ? "#182237" : "#f4f1e7"}"/>
@@ -767,8 +772,8 @@ export const SCENE_BG: Record<string, string> = {
 };
 
 export const CHARACTER_SPRITES: Record<string, string> = {
-  锐: "https://i.imgur.com/0swZ6jg.jpeg",
-  蒋: "https://i.imgur.com/SStY5m6.jpeg",
+  锐: "https://i.imgur.com/RMYcBeX.png",
+  蒋: "https://i.imgur.com/xRBHPZu.png",
   俞: "https://i.imgur.com/BioDQB4.jpeg",
   小猫: "https://i.imgur.com/BioDQB4.jpeg",
   图书管理员老师: "https://i.imgur.com/tdPI7mK.jpeg",
@@ -781,7 +786,7 @@ export const CHARACTER_SPRITES: Record<string, string> = {
   "？？学长": "https://i.imgur.com/rZeZN6Z.jpeg",
   学长: "https://i.imgur.com/rZeZN6Z.jpeg",
   "？？？": "https://i.imgur.com/BioDQB4.jpeg",
-  植物人学长的妈妈: "https://i.imgur.com/tdPI7mK.jpeg",
+  植物人学长的妈妈: "https://i.imgur.com/yNpNszf.gif",
   马佳宁: "https://i.imgur.com/tdPI7mK.jpeg",
   调查员甲: "https://i.imgur.com/vEcaTQf.jpeg",
   调查员乙: "https://i.imgur.com/6hbyRf9.jpeg",
@@ -790,6 +795,12 @@ export const CHARACTER_SPRITES: Record<string, string> = {
   体育组组长: "https://i.imgur.com/82XmTrj.jpeg",
   年级组长: "https://i.imgur.com/82XmTrj.jpeg",
   女警员: "https://i.imgur.com/tdPI7mK.jpeg",
+};
+
+const CHARACTER_VARIANTS: Partial<Record<keyof typeof CHARACTER_SPRITES, Partial<Record<CharacterExpression, string>>>> = {
+  锐: {
+    hesitant: "https://i.imgur.com/uK2YPCJ.png",
+  },
 };
 
 export const CHARACTER_COLORS: Record<string, string> = {
@@ -1119,10 +1130,10 @@ export interface StageCharacter {
   position: "left" | "center" | "right";
   spriteUrl: string;
   isSpeaking: boolean;
-  expression: "calm" | "hesitant" | "panic" | "breakdown" | "shadow";
+  expression: CharacterExpression;
 }
 
-function inferExpression(line: ScriptLine | undefined, speaker: string, isSpeaking: boolean): StageCharacter["expression"] {
+function inferExpression(line: ScriptLine | undefined, speaker: string, isSpeaking: boolean): CharacterExpression {
   if (!line || !speaker) return "calm";
   if (!isSpeaking) {
     if (line.effect === "darken" || /地下室|深夜|秘密|调查/.test(line.scene || "")) return "shadow";
@@ -1137,6 +1148,12 @@ function inferExpression(line: ScriptLine | undefined, speaker: string, isSpeaki
   if (line.effect === "darken" || /(地下室|黑暗|秘密|调查|沉重|压抑|冷|空洞|死寂|没有回答)/.test(stageText)) return "shadow";
   if (/(沉默|犹豫|迟疑|轻声|低声|顿了一下|苦笑|半信半疑|将信将疑|……)/.test(stageText)) return "hesitant";
   return "calm";
+}
+
+function resolveCharacterSprite(name: string, expression: CharacterExpression): string {
+  const variants = CHARACTER_VARIANTS[name as keyof typeof CHARACTER_VARIANTS];
+  if (variants?.[expression]) return variants[expression] || CHARACTER_SPRITES[name];
+  return CHARACTER_SPRITES[name];
 }
 
 export function getSceneCharacters(
@@ -1170,13 +1187,16 @@ export function getSceneCharacters(
   const positions: StageCharacter["position"][] =
     recent.length === 1 ? ["center"] : recent.length === 2 ? ["left", "right"] : ["left", "center", "right"];
 
-  return recent.map((name, idx) => ({
-    name,
-    position: positions[idx] ?? "center",
-    spriteUrl: CHARACTER_SPRITES[name],
-    isSpeaking: name === currentSpeaker,
-    expression: inferExpression(lines[currentIndex], name, name === currentSpeaker),
-  }));
+  return recent.map((name, idx) => {
+    const expression = inferExpression(lines[currentIndex], name, name === currentSpeaker);
+    return {
+      expression,
+      name,
+      position: positions[idx] ?? "center",
+      spriteUrl: resolveCharacterSprite(name, expression),
+      isSpeaking: name === currentSpeaker,
+    };
+  });
 }
 
 export const ALL_CONTENT_IMAGES: string[] = Array.from(
@@ -1185,5 +1205,6 @@ export const ALL_CONTENT_IMAGES: string[] = Array.from(
     ...Object.values(BG),
     ...Object.values(SCENE_BG),
     ...Object.values(CHARACTER_SPRITES),
+    ...Object.values(CHARACTER_VARIANTS).flatMap((variants) => Object.values(variants || {})),
   ]),
 );
