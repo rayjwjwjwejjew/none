@@ -1215,9 +1215,9 @@ textarea {
   background:
     linear-gradient(
       to top,
-      rgba(6, 5, 10, calc(var(--ui-alpha) * 1.45)) 0%,
-      rgba(6, 5, 10, calc(var(--ui-alpha) * 0.65)) 34%,
-      rgba(6, 5, 10, 0.04) 72%,
+      rgba(6, 5, 10, calc(var(--ui-alpha) * 1.05)) 0%,
+      rgba(6, 5, 10, calc(var(--ui-alpha) * 0.42)) 34%,
+      rgba(6, 5, 10, 0.02) 72%,
       transparent 100%
     );
   pointer-events: none;
@@ -1237,13 +1237,13 @@ textarea {
   background:
     linear-gradient(
       180deg,
-      rgba(8, 8, 12, calc(var(--ui-alpha) * 1.05)) 0%,
-      rgba(8, 8, 12, calc(var(--ui-alpha) * 0.58)) 56%,
-      rgba(8, 8, 12, calc(var(--ui-alpha) * 0.2)) 100%
+      rgba(8, 8, 12, calc(var(--ui-alpha) * 0.78)) 0%,
+      rgba(8, 8, 12, calc(var(--ui-alpha) * 0.34)) 56%,
+      rgba(8, 8, 12, calc(var(--ui-alpha) * 0.1)) 100%
     );
-  box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.16);
-  backdrop-filter: blur(10px) saturate(1.02);
-  -webkit-backdrop-filter: blur(10px) saturate(1.02);
+  box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(8px) saturate(1.01);
+  -webkit-backdrop-filter: blur(8px) saturate(1.01);
   pointer-events: auto;
   cursor: pointer;
 }
@@ -1680,11 +1680,11 @@ textarea {
   background:
     linear-gradient(
       180deg,
-      rgba(14, 9, 10, calc(var(--ui-alpha) * 1.2)) 0%,
-      rgba(14, 9, 10, calc(var(--ui-alpha) * 0.74)) 56%,
-      rgba(14, 9, 10, calc(var(--ui-alpha) * 0.28)) 100%
+      rgba(14, 9, 10, calc(var(--ui-alpha) * 0.92)) 0%,
+      rgba(14, 9, 10, calc(var(--ui-alpha) * 0.46)) 56%,
+      rgba(14, 9, 10, calc(var(--ui-alpha) * 0.14)) 100%
     );
-  box-shadow: 0 -16px 38px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.14);
 }
 
 @keyframes choiceBlockReveal {
