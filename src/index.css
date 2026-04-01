@@ -52,6 +52,66 @@ textarea {
   background: #000;
 }
 
+#app-root.low-perf .title-bg,
+#app-root.low-perf .credits-bg {
+  filter: brightness(0.3) saturate(1.02) !important;
+  animation-duration: 42s;
+}
+
+#app-root.low-perf .title-glow {
+  filter: blur(34px);
+  opacity: 0.1;
+}
+
+#app-root.low-perf .title-sweep {
+  opacity: 0.3;
+  animation-duration: 6.8s;
+}
+
+#app-root.low-perf .bg-layer::after,
+#app-root.low-perf #fx::after {
+  opacity: 0.22;
+}
+
+#app-root.low-perf .fx-scene-blur .bg-container {
+  filter: blur(1px) brightness(0.88);
+}
+
+#app-root.low-perf #box,
+#app-root.low-perf .bgm-indicator,
+#app-root.low-perf .panel,
+#app-root.low-perf .cg-overlay,
+#app-root.low-perf .title-panel-shell,
+#app-root.low-perf .pbtn,
+#app-root.low-perf .btn,
+#app-root.low-perf .bgm-ctrl-btn,
+#app-root.low-perf .choice {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+#app-root.low-perf .choice,
+#app-root.low-perf .pbtn,
+#app-root.low-perf .btn,
+#app-root.low-perf .bgm-ctrl-btn,
+#app-root.low-perf .panel,
+#app-root.low-perf .cg-panel {
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+#app-root.low-perf .sprite-multi.show.speaking,
+#app-root.low-perf .sprite-multi.show.not-speaking,
+#app-root.low-perf .sprite-multi.expression-hesitant,
+#app-root.low-perf .sprite-multi.expression-panic,
+#app-root.low-perf .sprite-multi.expression-breakdown,
+#app-root.low-perf .sprite-multi.expression-shadow {
+  filter: brightness(1);
+}
+
+#app-root.low-perf #dust {
+  opacity: 0.2;
+}
+
 #warning-screen,
 #title-screen,
 #credits-screen,

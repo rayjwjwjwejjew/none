@@ -80,6 +80,7 @@ const CREDITS_BLOCKS = [
 
 const TITLE_SCREEN_BG = "https://i.imgur.com/FAWl3AP.png";
 const CORNER_IMG_URL = "https://i.imgur.com/NVGVJiU.png";
+const IMAGE_PRELOAD_CACHE = new Set<string>();
 
 const QA_ITEMS = [
   { q: "1、为什么做这个？", a: "m成分占比太高" },
@@ -115,6 +116,23 @@ function getCodeFenceLanguage(path: string): string {
   if (path.endsWith(".md")) return "md";
   if (path.endsWith(".d.ts")) return "ts";
   return "text";
+}
+
+function preloadImage(url: string | null | undefined) {
+  if (!url || IMAGE_PRELOAD_CACHE.has(url)) return;
+  const img = new Image();
+  img.decoding = "async";
+  img.loading = "eager";
+  img.src = url;
+  IMAGE_PRELOAD_CACHE.add(url);
+}
+
+function resolveBackgroundUrl(lineIndex: number): string {
+  const line = SCRIPT.lines[lineIndex];
+  if (!line) return DEFAULT_BG;
+  const special = getSpecialBg(lineIndex);
+  if (special) return special;
+  return getSceneBg(line.scene) || DEFAULT_BG;
 }
 
 const RainCanvas = memo(function RainCanvas({
@@ -477,6 +495,20 @@ export function App() {
   useEffect(() => {
     refreshBgmList();
   }, [refreshBgmList]);
+
+  useEffect(() => {
+    preloadImage(TITLE_SCREEN_BG);
+    preloadImage(CORNER_IMG_URL);
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "playing") return;
+    const upcoming = new Set<string>();
+    for (let i = index; i < Math.min(SCRIPT.lines.length, index + 8); i += 1) {
+      upcoming.add(resolveBackgroundUrl(i));
+    }
+    upcoming.forEach((url) => preloadImage(url));
+  }, [index, phase]);
 
   useEffect(() => {
     if (phase !== "playing" || !curLine) return;
@@ -1132,7 +1164,7 @@ export function App() {
   );
 
   return (
-    <div id="app-root">
+    <div id="app-root" className={lowPerfMode ? "low-perf" : ""}>
       {phase === "warning" && (
         <div id="warning-screen">
           <div id="warning-content">
