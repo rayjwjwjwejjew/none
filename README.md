@@ -1,4 +1,4 @@
-# 盛开在谎言之上 / Soul Returns VN
+# Soul Returns VN
 
 一个用 `React + Vite + TypeScript` 写的悬疑向视觉小说项目。  
 重点是把“剧情演出”和“本地资源管理”结合起来：可以边写剧情，边在浏览器里上传和替换背景、立绘、BGM、SFX、CG（含视频）。
